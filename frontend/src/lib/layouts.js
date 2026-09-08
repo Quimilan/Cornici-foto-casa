@@ -87,6 +87,25 @@ export const MAT_COLORS = [
   { id: "black", label: "Nero", color: "#18181A" },
 ];
 
+export const PAPER_FORMATS = [
+  { id: "auto", label: "Come il collage" },
+  { id: "A5", label: "A5 (14,8 × 21 cm)", w: 14.8, h: 21.0 },
+  { id: "A4", label: "A4 (21 × 29,7 cm)", w: 21.0, h: 29.7 },
+  { id: "A3", label: "A3 (29,7 × 42 cm)", w: 29.7, h: 42.0 },
+  { id: "A2", label: "A2 (42 × 59,4 cm)", w: 42.0, h: 59.4 },
+  { id: "30x40", label: "30 × 40 cm", w: 30, h: 40 },
+  { id: "50x70", label: "50 × 70 cm", w: 50, h: 70 },
+  { id: "70x100", label: "70 × 100 cm", w: 70, h: 100 },
+];
+
+export function paperDims(paperId, orientation) {
+  const p = PAPER_FORMATS.find((x) => x.id === paperId);
+  if (!p || !p.w) return null;
+  const lo = Math.min(p.w, p.h);
+  const hi = Math.max(p.w, p.h);
+  return orientation === "horizontal" ? { w_cm: hi, h_cm: lo } : { w_cm: lo, h_cm: hi };
+}
+
 export function newCells(layoutKey) {
   const layout = LAYOUTS.find((l) => l.key === layoutKey) || LAYOUTS[5];
   return layout.cells.map((c) => ({

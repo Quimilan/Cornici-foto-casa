@@ -10,7 +10,7 @@ import { Frame, Save, FolderOpen, Eye, FileText, Download, Loader2, ChevronDown,
 
 export default function Header({
   projectName, setProjectName, dpi, setDpi,
-  onSave, onOpenLoad, onWallPreview, onPrintSpec, onExport, exporting,
+  onSave, onOpenLoad, onWallPreview, onPrintSpec, onExport, onOpenPdfExport, exporting,
   projects, onLoadProject, onDeleteProject,
 }) {
   return (
@@ -103,8 +103,8 @@ export default function Header({
         <DropdownMenuContent align="end" className="bg-[#1e2028] border-[#2e323d] text-gray-200">
           <DropdownMenuItem data-testid="export-high-res-jpg-button" onSelect={() => onExport("jpg")}
             className="focus:bg-[#23262f] focus:text-white">JPG alta qualità</DropdownMenuItem>
-          <DropdownMenuItem data-testid="export-high-res-pdf-button" onSelect={() => onExport("pdf")}
-            className="focus:bg-[#23262f] focus:text-white">PDF pronto stampa</DropdownMenuItem>
+          <DropdownMenuItem data-testid="export-high-res-pdf-button" onSelect={onOpenPdfExport}
+            className="focus:bg-[#23262f] focus:text-white">PDF pronto stampa (CMYK)…</DropdownMenuItem>
           <DropdownMenuItem data-testid="export-high-res-png-button" onSelect={() => onExport("png")}
             className="focus:bg-[#23262f] focus:text-white">PNG senza perdite</DropdownMenuItem>
         </DropdownMenuContent>

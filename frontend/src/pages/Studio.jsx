@@ -7,6 +7,7 @@ import CanvasStage from "@/components/CanvasStage";
 import WallPreview from "@/components/WallPreview";
 import PrintSpec from "@/components/PrintSpec";
 import FrameFinder from "@/components/FrameFinder";
+import ExportDialog from "@/components/ExportDialog";
 import {
   FORMATS, orientedDims, newCells, LAYOUTS, chooseBestLayout, newText,
 } from "@/lib/layouts";
@@ -58,6 +59,7 @@ export default function Studio() {
   const [wallLoading, setWallLoading] = useState(false);
   const [specOpen, setSpecOpen] = useState(false);
   const [frameFinderOpen, setFrameFinderOpen] = useState(false);
+  const [pdfExportOpen, setPdfExportOpen] = useState(false);
 
   const photosById = useMemo(() => Object.fromEntries(photos.map((p) => [p.id, p])), [photos]);
   const format = useMemo(() => orientedDims(formatId, orientation), [formatId, orientation]);
@@ -224,6 +226,21 @@ export default function Studio() {
     }
   };
 
+  const onExportPdf = async ({ paper, bleed_mm, cmyk }) => {
+    setExporting(true);
+    try {
+      const spec = { ...buildSpec(), dpi: 300 };
+      const blob = await exportCollage(spec, "pdf", projectName || "collage", { paper, bleed_mm, cmyk });
+      download(blob, `${(projectName || "collage").replace(/\s+/g, "_")}_stampa.pdf`);
+      toast.success(`PDF pronto stampa · 300 DPI${cmyk ? " · CMYK" : ""}${bleed_mm ? " · bleed 3mm" : ""}`);
+      setPdfExportOpen(false);
+    } catch (e) {
+      toast.error("Esportazione PDF non riuscita");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const onSave = async () => {
     try {
       await saveProject({ name: projectName || "Senza titolo", formatId, orientation, layoutKey, spec: buildSpec() });
@@ -282,7 +299,7 @@ export default function Studio() {
         projectName={projectName} setProjectName={setProjectName}
         dpi={dpi} setDpi={setDpi}
         onSave={onSave} onWallPreview={onWallPreview} onPrintSpec={() => setSpecOpen(true)}
-        onExport={onExport} exporting={exporting}
+        onExport={onExport} onOpenPdfExport={() => setPdfExportOpen(true)} exporting={exporting}
         projects={projects} onLoadProject={onLoadProject} onDeleteProject={onDeleteProject}
       />
 
@@ -347,6 +364,7 @@ export default function Studio() {
       <PrintSpec open={specOpen} onClose={() => setSpecOpen(false)} format={format} dpi={dpi} cells={cells}
         photosById={photosById} frame={frame} mat={mat} projectName={projectName} />
       <FrameFinder open={frameFinderOpen} onClose={() => setFrameFinderOpen(false)} format={format} frameColor={frame.color} />
+      <ExportDialog open={pdfExportOpen} onClose={() => setPdfExportOpen(false)} format={format} onExportPdf={onExportPdf} exporting={exporting} />
     </div>
   );
 }

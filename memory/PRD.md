@@ -36,6 +36,10 @@
   - Testi e didascalie sul passe-partout: titolo in basso, didascalia per cella, testo libero trascinabile; font eleganti (Playfair/Cormorant/Montserrat/Corsivo/Inter), dimensione/colore/spaziatura/rotazione. Rendering server-side con TTF bundlati (parità col preview).
   - Disposizione automatica in un clic (sceglie il layout migliore per numero di foto e riempie).
   - Cornici premium (legno/alluminio con gradiente, bevel) + vetro anti-riflesso SOLO in anteprima (non stampato) + "Trova cornici" con link di ricerca live a negozi reali (Amazon.it, IKEA, ifolor, Leroy Merlin, Etsy, Google Shopping).
+- [x] Iterazione 3 (100% backend+frontend, iteration_3): Export PDF professionale pronto stampa.
+  - Dialogo dedicato con scelta formato carta (A5/A4/A3/A2/30x40/50x70/70x100 o "Come il collage") + orientamento.
+  - 300 DPI, colori CMYK (Pillow convert), margini al vivo (bleed) 3mm su tutti i lati con edge-extension.
+  - Riepilogo live: pagina rifilata, dimensione con bleed, pixel finali, modalità colore.
 
 ## Backlog / Prossimi passi (P1/P2)
 - Auto-disposizione intelligente / suggerimento layout in base al numero di foto caricate.

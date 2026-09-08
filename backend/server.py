@@ -179,6 +179,10 @@ class ExportRequest(BaseModel):
     spec: CollageSpec
     fmt: str = "jpg"  # jpg | pdf | png
     filename: str = "collage"
+    paper: Optional[FormatSpec] = None   # None => usa il formato del collage
+    bleed_mm: float = 0.0
+    cmyk: bool = False
+    page_bg: str = "#FFFFFF"
 
 
 # ---------------------------------------------------------------------------
@@ -490,29 +494,65 @@ async def delete_project(project_id: str):
     return {"ok": True}
 
 
+def fit_on_page(collage: Image.Image, page_w: int, page_h: int, bg: tuple) -> Image.Image:
+    iw, ih = collage.size
+    scale = min(page_w / iw, page_h / ih)
+    nw, nh = max(1, round(iw * scale)), max(1, round(ih * scale))
+    resized = collage.resize((nw, nh), Image.LANCZOS)
+    page = Image.new("RGB", (page_w, page_h), bg)
+    page.paste(resized, ((page_w - nw) // 2, (page_h - nh) // 2))
+    return page
+
+
+def add_bleed(img: Image.Image, b: int) -> Image.Image:
+    if b <= 0:
+        return img
+    pw, ph = img.size
+    canvas = Image.new(img.mode, (pw + 2 * b, ph + 2 * b))
+    canvas.paste(img, (b, b))
+    left = img.crop((0, 0, 1, ph)).resize((b, ph))
+    right = img.crop((pw - 1, 0, pw, ph)).resize((b, ph))
+    top = img.crop((0, 0, pw, 1)).resize((pw, b))
+    bottom = img.crop((0, ph - 1, pw, ph)).resize((pw, b))
+    canvas.paste(left, (0, b)); canvas.paste(right, (b + pw, b))
+    canvas.paste(top, (b, 0)); canvas.paste(bottom, (b, b + ph))
+    canvas.paste(img.crop((0, 0, 1, 1)).resize((b, b)), (0, 0))
+    canvas.paste(img.crop((pw - 1, 0, pw, 1)).resize((b, b)), (b + pw, 0))
+    canvas.paste(img.crop((0, ph - 1, 1, ph)).resize((b, b)), (0, b + ph))
+    canvas.paste(img.crop((pw - 1, ph - 1, pw, ph)).resize((b, b)), (b + pw, b + ph))
+    return canvas
+
+
 @api_router.post("/export")
 async def export_collage(req: ExportRequest):
     try:
         img = await build_collage(req.spec)
+        dpi = req.spec.dpi
+        # Place onto chosen paper format (contain) if provided
+        if req.paper is not None:
+            pw = cm_to_px(req.paper.w_cm, dpi)
+            ph = cm_to_px(req.paper.h_cm, dpi)
+            img = fit_on_page(img, pw, ph, hex_to_rgb(req.page_bg))
+        # Professional bleed (edge extension)
+        if req.bleed_mm and req.bleed_mm > 0:
+            bleed_px = max(1, round(req.bleed_mm / 25.4 * dpi))
+            img = add_bleed(img, bleed_px)
     except Exception as e:
         logger.exception("export failed")
         raise HTTPException(status_code=500, detail=f"Errore rendering: {e}")
 
     buf = io.BytesIO()
-    dpi = req.spec.dpi
     fmt = req.fmt.lower()
     if fmt == "pdf":
-        img.save(buf, "PDF", resolution=float(dpi))
-        media = "application/pdf"
-        ext = "pdf"
+        out = img.convert("CMYK") if req.cmyk else img.convert("RGB")
+        out.save(buf, "PDF", resolution=float(dpi))
+        media, ext = "application/pdf", "pdf"
     elif fmt == "png":
         img.save(buf, "PNG", dpi=(dpi, dpi))
-        media = "image/png"
-        ext = "png"
+        media, ext = "image/png", "png"
     else:
         img.save(buf, "JPEG", quality=95, dpi=(dpi, dpi), subsampling=0)
-        media = "image/jpeg"
-        ext = "jpg"
+        media, ext = "image/jpeg", "jpg"
     buf.seek(0)
     safe = "".join(c for c in req.filename if c.isalnum() or c in "-_") or "collage"
     headers = {"Content-Disposition": f'attachment; filename="{safe}.{ext}"'}

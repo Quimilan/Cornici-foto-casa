@@ -47,10 +47,10 @@ export async function deleteProject(id) {
   await api.delete(`/projects/${id}`);
 }
 
-export async function exportCollage(spec, fmt, filename) {
+export async function exportCollage(spec, fmt, filename, opts = {}) {
   const res = await api.post(
     "/export",
-    { spec, fmt, filename },
+    { spec, fmt, filename, ...opts },
     { responseType: "blob" }
   );
   return res.data;

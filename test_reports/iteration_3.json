@@ -1,0 +1,20 @@
+{
+  "summary": "Iteration 3: professional PDF export (paper format + 3mm bleed + CMYK) fully verified backend + frontend. Backend 5/5 pytest pass (A4+bleed+CMYK produced /DeviceCMYK PDF with 2550x3578 pixels; auto-paper used collage size 50x70 with 3mm bleed CMYK; RGB-no-bleed produced /DeviceRGB at exact paper px; jpg/png regression still return exact-DPI files). Frontend Playwright: export-menu-button -> export-high-res-pdf-button opens export-pdf-dialog; bleed-toggle and cmyk-toggle default ON; paper-format-select changes; paper-orientation-vertical/horizontal appear and toggle when a non-auto paper is picked; live summary shows 300 DPI, page cm, cm with bleed, final px and CMYK/RGB; confirm-pdf-export-button POSTs to /api/export with fmt=pdf, paper dims, bleed_mm=3, cmyk=true and triggers a PDF download (Nuovo_collage_stampa.pdf). No console errors observed.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_pdf_professional.py",
+    "/app/test_reports/pytest/iter3_pdf.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py export_collage: CMYK conversion uses Pillow default (no ICC profile) - acceptable per spec but for accurate press color, consider embedding an ICC (e.g. FOGRA/US Web) profile via ImageCms in a future iteration.",
+    "add_bleed extends edges by stretching 1px slices - simple and fast; for photos with strong edge detail, mirror-padding would look cleaner but this is fine as a print-safety bleed."
+  ],
+  "updated_files": ["/app/backend/tests/test_pdf_professional.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "seed_data_creation": "Reused sample photos via idempotent /api/import-samples.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "New test file /app/backend/tests/test_pdf_professional.py covers CMYK/RGB colorspace via raw PDF byte inspection (/DeviceCMYK vs /DeviceRGB) and pixel dimensions via /Width //Height regex. Bleed pixel math: bleed_px=round(bleed_mm/25.4*dpi); final px = round(paper_cm/2.54*dpi)+2*bleed_px (rounded per-dim, not per-final-cm). Frontend dialog and download flow validated end-to-end."
+}
