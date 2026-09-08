@@ -1,0 +1,161 @@
+{
+  "project_title": "Editor Collage da Galleria - Stampa Foto Alta Qualità",
+  "app_type": "saas_app",
+  "language": "it",
+  "emotional_tone": "Studio fotografico professionale, raffinato, elegante, moderno ed armonioso",
+  "archetype": "LUXURY & SWISS HYBRID (Elegance + Precise Grid)",
+  "color_palette": {
+    "background_main": "#0D0E11",
+    "background_canvas_workspace": "#14161C",
+    "surface_card": "#1E2028",
+    "surface_border": "#2E323D",
+    "text_primary": "#F4F5F8",
+    "text_secondary": "#9CA3AF",
+    "text_muted": "#6B7280",
+    "accent_primary": "#E2B15D",
+    "accent_primary_hover": "#F0C473",
+    "accent_secondary": "#3B82F6",
+    "status_success": "#10B981",
+    "status_warning": "#F59E0B",
+    "frame_black": "#121212",
+    "frame_white": "#FAFAFA",
+    "frame_wood": "#C29B6C",
+    "frame_metal": "#8E9196",
+    "mat_passepartout": "#FFFFFF",
+    "mat_cream": "#F8F5EE",
+    "mat_black": "#18181A"
+  },
+  "typography": {
+    "heading_font": "Outfit, sans-serif",
+    "body_font": "Inter, sans-serif",
+    "mono_font": "JetBrains Mono, monospace",
+    "h1": "text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight",
+    "h2": "text-2xl sm:text-3xl font-bold tracking-tight",
+    "h3": "text-lg sm:text-xl font-semibold",
+    "label": "text-xs font-medium uppercase tracking-wider text-gray-400",
+    "instructions": "Use font Google Fonts import in index.html for Outfit & JetBrains Mono."
+  },
+  "spacing_and_layout": {
+    "editor_structure": "Full-height app layout (h-screen overflow-hidden). Header (top 56px), Left Sidebar for Uploads & Asset Gallery (320px), Center Interactive Canvas (flex-1), Right Sidebar for Format, Frame, Passe-Partout & Layout Controls (340px). Bottom Toolbar for Zoom/Fit/3D Wall View.",
+    "border_padding": "Internal padding inside borders minimum p-4 or p-6 to avoid text collisions.",
+    "responsive_strategy": "On small screens (mobile/tablet), collapse sidebars into slide-over sheets or drawer tabs, preserving canvas center focus."
+  },
+  "key_features": [
+    {
+      "name": "Selettore Formato e Orientamento (Format & Orientation Picker)",
+      "description": "Scelta formati di stampa reali: 50x70 cm, 40x110 cm, 30x40 cm, 70x50 cm, 50x50 cm. Orientamento Verticale, Orizzontale, Quadrato. Anteprima dimensioni reali in mm/cm e risoluzione necessaria in pixel."
+    },
+    {
+      "name": "Personalizzazione Cornice e Passe-partout (Frame & Mat Configurator)",
+      "description": "Cornici in legno naturale, nero, bianco, alluminio. Passe-partout regolabile (spessore, margini, colore bianco/crema/nero), simulazione vetro acrilico anti-riflesso e profondità 3D."
+    },
+    {
+      "name": "Gestione Layout Griglia (Layout Grid Templates)",
+      "description": "Template flessibili per 2, 3, 4, 6, 9, 12, 24, 52 foto. Regolazione dinamica di spaziatura (gutter/gap), raggio angoli, proporzioni celle e simmetria."
+    },
+    {
+      "name": "Caricamento e Gestione Foto (Photo Drag & Drop Upload)",
+      "description": "Caricamento file ad alta risoluzione (JPG, PNG, WEBP), libreria foto di esempio ad alta definizione per prova immediata, indicatore qualità DPI per ogni foto caricata."
+    },
+    {
+      "name": "Editor Foto Canvas Interattivo (Interactive Cell Editor)",
+      "description": "Trascina e rilascia foto nelle celle, pan/zoom foto nella cella, scambia foto tra celle (swap), filtri colore (B&W, Seppia, Nitido, Caldo, Freddo), rotazione e ritaglio."
+    },
+    {
+      "name": "Modalità Simulazione Parete 3D (Living Room Wall Mockup)",
+      "description": "Visualizzazione realistica del collage incorniciato appeso in un soggiorno/galleria per valutare l'impatto d'arredo prima della stampa."
+    },
+    {
+      "name": "Esportazione e Salvataggio Progetto (Print-Ready Export 300 DPI & Save/Load)",
+      "description": "Download in formato PDF/JPG pronto per tipografia (300 DPI simulati), salvataggio progetto locale/server, ripristino progetti e scheda specifiche per centro stampa."
+    }
+  ],
+  "image_urls": {
+    "gallery_interiors": [
+      {
+        "url": "https://images.unsplash.com/photo-1600210491369-e753d80a41f3?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzl8MHwxfHNlYXJjaHwyfHxnYWxsZXJ5JTIwd2FsbCUyMHBob3RvJTIwZnJhbWUlMjBhcnQlMjBwcmludCUyMG1pbmltYWwlMjBsaXZpbmclMjByb29tJTIwaW50ZXJpb3IlMjBkZXNpZ258ZW58MHx8fHwxNzg4ODg0MDE2fDA&ixlib=rb-4.1.0&q=85",
+        "description": "Living room interior with elegant white frame wall gallery"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1615876234886-fd9a39fda97f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzl8MHwxfHNlYXJjaHwzfHxnYWxsZXJ5JTIwd2FsbCUyMHBob3RvJTIwZnJhbWUlMjBhcnQlMjBwcmludCUyMG1pbmltYWwlMjBsaXZpbmclMjByb29tJTIwaW50ZXJpb3IlMjBkZXNpZ258ZW58MHx8fHwxNzg4ODg0MDE2fDA&ixlib=rb-4.1.0&q=85",
+        "description": "Warm living room leather couch wall art framing"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1632119580908-ae947d4c7691?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzl8MHwxfHNlYXJjaHwxfHxnYWxsZXJ5JTIwd2FsbCUyMHBob3RvJTIwZnJhbWUlMjBhcnQlMjBwcmludCUyMG1pbmltYWwlMjBsaXZpbmclMjByb29tJTIwaW50ZXJpb3IlMjBkZXNpZ258ZW58MHx8fHwxNzg4ODg0MDE2fDA&ixlib=rb-4.1.0&q=85",
+        "description": "Modern green couch room with high quality photo prints"
+      }
+    ],
+    "sample_photos": [
+      {
+        "url": "https://images.unsplash.com/photo-1522743791393-522312deeebf?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzl8MHwxfHNlYXJjaHwzfHxtaW5pbWFsJTIwcG9ydHJhaXQlMjB0cmF2ZWwlMjBhcmNoaXRlY3R1cmUlMjBwaG90b2dyYXBoeSUyMGdhbGxlcnklMjBwaG90b3xlbnwwfHx8fDE3ODg4ODQwMjB8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Minimal architecture blue sky concrete pillars"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1738844153732-a485f0e78382?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzl8MHwxfHNlYXJjaHwyfHxtaW5pbWFsJTIwcG9ydHJhaXQlMjB0cmF2ZWwlMjBhcmNoaXRlY3R1cmUlMjBwaG90b2dyYXBoeSUyMGdhbGxlcnklMjBwaG90b3xlbnwwfHx8fDE3ODg4ODQwMjB8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Monochrome high-contrast building lines"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1619857121838-997e82345250?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzl8MHwxfHNlYXJjaHw0fHxtaW5pbWFsJTIwcG9ydHJhaXQlMjB0cmF2ZWwlMjBhcmNoaXRlY3R1cmUlMjBwaG90b3xlbnwwfHx8fDE3ODg4ODQwMjB8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Artistic B&W silhouette walker photography"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1496865534669-25ec2a3a0fd3?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzl8MHwxfHNlYXJjaHwxfHxtaW5pbWFsJTIwcG9ydHJhaXQlMjB0cmF2ZWwlMjBhcmNoaXRlY3R1cmUlMjBwaG90b2dyYXBoeSUyMGdhbGxlcnklMjBwaG90b3xlbnwwfHx8fDE3ODg4ODQwMjB8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Minimal portrait woman against pastel architectural wall"
+      }
+    ]
+  },
+  "testing_requirements": {
+    "mandatory_data_testids": [
+      "app-header",
+      "format-selector-dropdown",
+      "orientation-vertical-button",
+      "orientation-horizontal-button",
+      "orientation-square-button",
+      "frame-color-black",
+      "frame-color-white",
+      "frame-color-wood",
+      "frame-color-metal",
+      "passepartout-toggle",
+      "layout-grid-option-2",
+      "layout-grid-option-3",
+      "layout-grid-option-4",
+      "layout-grid-option-6",
+      "layout-grid-option-9",
+      "photo-upload-input",
+      "sample-photo-library-button",
+      "collage-canvas-container",
+      "cell-item-0",
+      "cell-item-1",
+      "cell-item-2",
+      "cell-item-3",
+      "wall-preview-modal-button",
+      "save-project-button",
+      "load-project-button",
+      "export-high-res-pdf-button",
+      "export-high-res-jpg-button",
+      "print-specifications-sheet-button"
+    ]
+  },
+  "instructions_to_main_agent": [
+    "Strictly follow Italian language for all UI elements, labels, buttons, tooltips, toasts, modals, and export options.",
+    "Build a rich interactive canvas where users can click any cell to assign/drag a photo, adjust zoom/pan, apply filters (B&W, Sepia, Vivid, Warm, Cool), or swap photos.",
+    "Include a live DPI Calculator badge in the canvas showing resolution health (e.g. '300 DPI - Eccellente per stampa 50x70cm').",
+    "Provide interactive Frame Configurator (Wood depth, Matte border width slider, Mat background color picker).",
+    "Provide a realistic 'Vista Parete Soggiorno' modal/toggle that places the custom framed collage in a photo-realistic living room wall context.",
+    "Export options should generate print-ready PNG/JPG canvas downloads and a detailed Print Specification Summary PDF/Sheet with color space CMYK/RGB recommendations and resolution specs.",
+    "Ensure Sonner toast notifications alert user upon uploading, saving project, auto-arranging, or exporting.",
+    "All interactive elements MUST have explicit data-testid attributes."
+  ],
+  "UNIVERSAL GUIDELINES FOR MAIN AGENT": {
+    "do_not": [
+      "Do NOT use transparent dropdown backgrounds or plain unstyled native inputs.",
+      "Do NOT use generic centered hero text without visual hierarchy.",
+      "Do NOT use transition: all. Use explicit transitions on background, border, opacity, color."
+    ],
+    "do": [
+      "Use explicit hover state text colors (e.g. hover:bg-amber-500 hover:text-black).",
+      "Include realistic default uploaded photos so the user sees a stunning high-resolution gallery frame collage immediately on launch.",
+      "Keep crisp high-contrast UI borders with slate/zinc dark tones for a professional dark studio workspace."
+    ]
+  }
+}
