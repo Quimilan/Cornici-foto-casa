@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Loader2 } from "lucide-react";
 
 const ROOM = "https://images.unsplash.com/photo-1600210491369-e753d80a41f3?crop=entropy&cs=srgb&fm=jpg&q=85&w=1600";
@@ -15,6 +15,7 @@ export default function WallPreview({ open, onClose, previewUrl, loading, format
       <DialogContent className="max-w-4xl bg-[#14161c] border-[#2e323d] text-gray-100 p-0 overflow-hidden">
         <DialogHeader className="px-6 pt-5 pb-3">
           <DialogTitle className="font-display text-white">Vista Parete Soggiorno</DialogTitle>
+          <DialogDescription className="text-gray-400">Simulazione del collage incorniciato appeso a parete.</DialogDescription>
         </DialogHeader>
         <div className="relative w-full" style={{ aspectRatio: "16 / 10" }} data-testid="wall-preview-canvas">
           <img src={ROOM} alt="soggiorno" className="absolute inset-0 w-full h-full object-cover" />

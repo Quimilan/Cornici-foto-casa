@@ -96,5 +96,45 @@ export function newCells(layoutKey) {
     offsetX: 0,
     offsetY: 0,
     filter: "none",
+    rotation: 0,
   }));
+}
+
+// Best layout for a given number of photos (used by auto-arrange)
+export function chooseBestLayout(n) {
+  const map = {
+    1: "1-full", 2: "2-cols", 3: "3-1big-2", 4: "4-grid",
+    5: "5-1big-4", 6: "6-grid", 7: "9-grid", 8: "9-grid",
+    9: "9-grid", 10: "12-grid", 11: "12-grid", 12: "12-grid",
+  };
+  return map[Math.max(1, Math.min(12, n))] || "12-grid";
+}
+
+export const FONTS = [
+  { id: "playfair", label: "Playfair", css: '"Playfair Display", serif' },
+  { id: "cormorant", label: "Cormorant", css: '"Cormorant Garamond", serif' },
+  { id: "montserrat", label: "Montserrat", css: '"Montserrat", sans-serif' },
+  { id: "dancing", label: "Corsivo", css: '"Dancing Script", cursive' },
+  { id: "inter", label: "Inter", css: '"Inter", sans-serif' },
+];
+
+export function fontCss(id) {
+  return (FONTS.find((f) => f.id === id) || FONTS[0]).css;
+}
+
+let _tid = 0;
+export function newText(partial = {}) {
+  _tid += 1;
+  return {
+    id: `t${Date.now()}_${_tid}`,
+    content: "Testo",
+    x: 0.5, y: 0.5,
+    size_cm: 1.4,
+    color: "#18181A",
+    font: "playfair",
+    align: "center",
+    rotation: 0,
+    letter_spacing: 0.02,
+    ...partial,
+  };
 }

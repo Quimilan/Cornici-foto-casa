@@ -1,13 +1,13 @@
 import { useRef } from "react";
 import { photoUrl } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Upload, Images, Trash2, Loader2 } from "lucide-react";
+import { Upload, Images, Trash2, Loader2, Wand2 } from "lucide-react";
 
 function megapixels(p) {
   return ((p.width * p.height) / 1e6).toFixed(1);
 }
 
-export default function PhotoSidebar({ photos, onUpload, onImportSamples, onAssign, onDelete, uploading, importing }) {
+export default function PhotoSidebar({ photos, onUpload, onImportSamples, onAssign, onDelete, onAutoArrange, uploading, importing }) {
   const inputRef = useRef(null);
 
   const handleFiles = (e) => {
@@ -47,6 +47,15 @@ export default function PhotoSidebar({ photos, onUpload, onImportSamples, onAssi
         >
           {importing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Images className="w-4 h-4 mr-2" />}
           Libreria di esempio
+        </Button>
+        <Button
+          data-testid="auto-arrange-button"
+          onClick={onAutoArrange}
+          disabled={photos.length === 0}
+          className="w-full mt-2 bg-[#23262f] text-[#e2b15d] border border-[#e2b15d]/40 hover:bg-[#e2b15d] hover:text-[#101216] font-semibold disabled:opacity-40"
+        >
+          <Wand2 className="w-4 h-4 mr-2" />
+          Disposizione automatica
         </Button>
       </div>
 

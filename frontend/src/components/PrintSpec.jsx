@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
 
 function Row({ label, value }) {
@@ -33,6 +33,7 @@ export default function PrintSpec({ open, onClose, format, dpi, cells, photosByI
       <DialogContent className="max-w-lg bg-[#14161c] border-[#2e323d] text-gray-100" data-testid="print-spec-dialog">
         <DialogHeader>
           <DialogTitle className="font-display text-white">Specifiche per il centro stampa</DialogTitle>
+          <DialogDescription className="text-gray-400">Riepilogo tecnico del file pronto per la stampa.</DialogDescription>
         </DialogHeader>
         <div className="space-y-1">
           <Row label="Progetto" value={projectName} />

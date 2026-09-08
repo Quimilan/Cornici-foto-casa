@@ -31,6 +31,11 @@
 - [x] Backend: /api/upload, /api/photos, /api/file/{id} (con cache + Cache-Control), /api/import-samples (idempotente), /api/projects CRUD, /api/export (Pillow, JPG/PDF/PNG, DPI verificato).
 - [x] Frontend: Studio editor completo (Header, PhotoSidebar, CanvasStage, SettingsPanel, WallPreview, PrintSpec).
 - [x] Test end-to-end: 100% backend, 100% frontend (iteration_1).
+- [x] Iterazione 2 (100% backend+frontend, iteration_2):
+  - Rotazione + ritaglio per cella (slider angolo preciso + step 90°, pan/zoom = ritaglio). Backend ruota con expand e ricalcola il cover.
+  - Testi e didascalie sul passe-partout: titolo in basso, didascalia per cella, testo libero trascinabile; font eleganti (Playfair/Cormorant/Montserrat/Corsivo/Inter), dimensione/colore/spaziatura/rotazione. Rendering server-side con TTF bundlati (parità col preview).
+  - Disposizione automatica in un clic (sceglie il layout migliore per numero di foto e riempie).
+  - Cornici premium (legno/alluminio con gradiente, bevel) + vetro anti-riflesso SOLO in anteprima (non stampato) + "Trova cornici" con link di ricerca live a negozi reali (Amazon.it, IKEA, ifolor, Leroy Merlin, Etsy, Google Shopping).
 
 ## Backlog / Prossimi passi (P1/P2)
 - Auto-disposizione intelligente / suggerimento layout in base al numero di foto caricate.

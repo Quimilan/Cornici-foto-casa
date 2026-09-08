@@ -1,0 +1,31 @@
+{
+  "summary": "Iteration 2 testing of 4 new features (cell rotation, texts on passe-partout, auto-arrange, premium frames + finder + glass) plus regression of export dimensions. Backend: 18/18 pytest passed (12 existing regression + 6 new for rotation & texts). Frontend Playwright end-to-end: all 4 new features verified in the UI. Auto-arrange picked 6-grid for 6 sample photos and filled every cell. Cell rotation applied via rotate-right-90 (CSS transform contains 'rotate') and reset works. Texts: add-title-button places 'Il nostro titolo' at the bottom of the passe-partout, add-free-text-button + text-content-input update live, font switch (dancing), color swatch, and delete-text-button all work. add-caption-button adds a 'Didascalia' under the selected cell. Cornici Premium: glass-toggle enables anti-glare overlay (detected in DOM), frame-color-wood/metal switch colors. Trova cornici: dialog opens with all 6 shop links (Amazon.it, IKEA, ifolor, Leroy Merlin, Etsy, Google Shopping) - 5 of 6 URLs contain the 50x70 size (ifolor deep-links to its dedicated collage-frames landing page by design). Save project works (toast 'Progetto salvato' shown).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "FrameFinder dialog", "issues": ["Radix warning: DialogContent missing aria-describedby/Description. Non-blocking a11y warning."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/backend/tests/test_new_features.py",
+    "/app/test_reports/pytest/iter2_all.xml",
+    "/app/test_reports/pytest/iter2_new_features.xml"
+  ],
+  "action_items": [
+    "Optional: add DialogDescription (or aria-describedby) to FrameFinder Dialog to silence Radix a11y warning."
+  ],
+  "critical_code_review_comments": [
+    "server.py draw_texts: font is loaded (ImageFont.truetype) once per text on every export - fine but could be cached by (font, size) pair for very-many-text exports.",
+    "put_object / get_object / build_collage still called via sync requests inside async handlers on /api/export - not blocking for typical single-user use but noted from iter1.",
+    "FrameFinder: ifolor URL is not parameterized by size; acceptable per spec (deep-link to its collage-frame landing page) but consider constructing a search URL for consistency."
+  ],
+  "updated_files": ["/app/backend/tests/test_new_features.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "seed_data_creation": "6 sample photos reused from prior import-samples (idempotent).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "backend_test.py (regression) + test_new_features.py (rotation + texts + full CollageSpec across jpg/pdf/png) both green. UI covered: auto-arrange, cell rotation + reset, add title/free text/caption, text edit (content/font/color/delete), glass toggle overlay, frame color wood/metal, find-frames dialog with 6 shops, save project. Export UI download and reopen-project restore-with-rotation were not exercised in this iteration but export API is verified with rotation and texts."
+}

@@ -6,8 +6,9 @@ import SettingsPanel from "@/components/SettingsPanel";
 import CanvasStage from "@/components/CanvasStage";
 import WallPreview from "@/components/WallPreview";
 import PrintSpec from "@/components/PrintSpec";
+import FrameFinder from "@/components/FrameFinder";
 import {
-  FORMATS, orientedDims, newCells, LAYOUTS,
+  FORMATS, orientedDims, newCells, LAYOUTS, chooseBestLayout, newText,
 } from "@/lib/layouts";
 import {
   fetchPhotos, importSamples, uploadPhoto, deletePhoto,
@@ -40,6 +41,10 @@ export default function Studio() {
   const [cornerRadiusCm, setCornerRadiusCm] = useState(0);
   const [bg, setBg] = useState("#FFFFFF");
   const [dpi, setDpi] = useState(300);
+  const [glass, setGlass] = useState(false);
+
+  const [texts, setTexts] = useState([]);
+  const [selectedTextId, setSelectedTextId] = useState(null);
 
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [projectName, setProjectName] = useState("Nuovo collage");
@@ -52,6 +57,7 @@ export default function Studio() {
   const [wallUrl, setWallUrl] = useState(null);
   const [wallLoading, setWallLoading] = useState(false);
   const [specOpen, setSpecOpen] = useState(false);
+  const [frameFinderOpen, setFrameFinderOpen] = useState(false);
 
   const photosById = useMemo(() => Object.fromEntries(photos.map((p) => [p.id, p])), [photos]);
   const format = useMemo(() => orientedDims(formatId, orientation), [formatId, orientation]);
@@ -104,7 +110,7 @@ export default function Studio() {
   };
 
   const clearCell = (index) => {
-    updateCell(index, { photoId: null, zoom: 1, offsetX: 0, offsetY: 0, filter: "none" });
+    updateCell(index, { photoId: null, zoom: 1, offsetX: 0, offsetY: 0, filter: "none", rotation: 0 });
   };
 
   const firstEmpty = () => cells.findIndex((c) => !c.photoId);
@@ -168,9 +174,41 @@ export default function Studio() {
     background_color: bg,
     cells: cells.map((c) => ({
       x: c.x, y: c.y, w: c.w, h: c.h,
-      photoId: c.photoId, zoom: c.zoom, offsetX: c.offsetX, offsetY: c.offsetY, filter: c.filter,
+      photoId: c.photoId, zoom: c.zoom, offsetX: c.offsetX, offsetY: c.offsetY, filter: c.filter, rotation: c.rotation || 0,
     })),
-  }), [format, dpi, frame, mat, gapCm, cornerRadiusCm, bg, cells]);
+    texts: texts.map((t) => ({
+      id: t.id, content: t.content, x: t.x, y: t.y, size_cm: t.size_cm,
+      color: t.color, font: t.font, align: t.align, rotation: t.rotation, letter_spacing: t.letter_spacing,
+    })),
+  }), [format, dpi, frame, mat, gapCm, cornerRadiusCm, bg, cells, texts]);
+
+  const autoArrange = () => {
+    const avail = photos.slice(0, 12);
+    if (avail.length === 0) return;
+    const key = chooseBestLayout(avail.length);
+    setLayoutKey(key);
+    setSelectedIndex(-1);
+    setCells(() => newCells(key).map((c, i) => (avail[i] ? { ...c, photoId: avail[i].id } : c)));
+    toast.success(`Disposizione automatica: ${LAYOUTS.find((l) => l.key === key)?.label}`);
+  };
+
+  const addText = (partial) => {
+    const t = newText(partial);
+    setTexts((prev) => [...prev, t]);
+    setSelectedTextId(t.id);
+  };
+  const addTitleBottom = () => addText({ content: "Il nostro titolo", x: 0.5, y: 0.94, size_cm: mat.width_cm > 1 ? 1.6 : 1.2, font: "playfair", letter_spacing: 0.06 });
+  const addFreeText = () => addText({ content: "Testo", x: 0.5, y: 0.5, font: "montserrat" });
+  const addCaptionForCell = () => {
+    if (selectedIndex < 0) return;
+    const c = cells[selectedIndex];
+    addText({ content: "Didascalia", x: c.x + c.w / 2, y: Math.min(0.98, c.y + c.h - 0.02), size_cm: 0.7, font: "montserrat", color: "#FFFFFF", letter_spacing: 0.04 });
+  };
+  const updateText = (id, patch) => setTexts((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
+  const removeText = (id) => {
+    setTexts((prev) => prev.filter((t) => t.id !== id));
+    if (selectedTextId === id) setSelectedTextId(null);
+  };
 
   const onExport = async (fmt) => {
     setExporting(true);
@@ -208,8 +246,10 @@ export default function Studio() {
     setCornerRadiusCm(s.corner_radius_cm);
     setBg(s.background_color);
     setDpi(s.dpi);
-    setCells(s.cells.map((c) => ({ ...c })));
+    setCells(s.cells.map((c) => ({ rotation: 0, ...c })));
+    setTexts((s.texts || []).map((t) => ({ ...t })));
     setSelectedIndex(-1);
+    setSelectedTextId(null);
     toast.success(`Progetto "${p.name}" aperto`);
   };
 
@@ -253,6 +293,7 @@ export default function Studio() {
           onImportSamples={onImportSamples}
           onAssign={assignPhoto}
           onDelete={onDeletePhoto}
+          onAutoArrange={autoArrange}
           uploading={uploading}
           importing={importing}
         />
@@ -265,12 +306,17 @@ export default function Studio() {
             gapCm={gapCm}
             cornerRadiusCm={cornerRadiusCm}
             bg={bg}
+            glass={glass}
             cells={cells}
             photosById={photosById}
             selectedIndex={selectedIndex}
-            onSelectCell={setSelectedIndex}
+            onSelectCell={(i) => { setSelectedIndex(i); if (i >= 0) setSelectedTextId(null); }}
             onUpdateCell={updateCell}
             onDropPhoto={onDropPhoto}
+            texts={texts}
+            selectedTextId={selectedTextId}
+            onSelectText={(id) => { setSelectedTextId(id); if (id) setSelectedIndex(-1); }}
+            onUpdateText={updateText}
           />
           <div className="h-9 shrink-0 border-t border-[#2e323d] flex items-center px-4 gap-4 text-[11px] text-gray-500 font-mono">
             <span>{format.w_cm} × {format.h_cm} cm</span>
@@ -279,23 +325,28 @@ export default function Studio() {
             <span>·</span>
             <span>{cells.filter((c) => c.photoId).length} inserite</span>
             <span className="flex-1" />
-            <span>Trascina le foto nelle celle · rotellina per zoom</span>
+            <span>Trascina per ritagliare · rotellina per zoom</span>
           </div>
         </main>
 
         <SettingsPanel
           formatId={formatId} orientation={orientation} layoutKey={layoutKey}
-          frame={frame} mat={mat} gapCm={gapCm} cornerRadiusCm={cornerRadiusCm} bg={bg} dpi={dpi} format={format}
+          frame={frame} mat={mat} gapCm={gapCm} cornerRadiusCm={cornerRadiusCm} bg={bg} dpi={dpi} format={format} glass={glass}
           setFormatId={handleSetFormat} setOrientation={setOrientation} setLayoutKey={handleSetLayout}
-          setFrame={setFrame} setMat={setMat} setGapCm={setGapCm} setCornerRadiusCm={setCornerRadiusCm} setBg={setBg} setDpi={setDpi}
+          setFrame={setFrame} setMat={setMat} setGapCm={setGapCm} setCornerRadiusCm={setCornerRadiusCm} setBg={setBg} setDpi={setDpi} setGlass={setGlass}
+          onOpenFrameFinder={() => setFrameFinderOpen(true)}
           selectedIndex={selectedIndex} selectedCell={selectedCell} photosById={photosById}
           updateCell={updateCell} clearCell={clearCell}
+          texts={texts} selectedText={texts.find((t) => t.id === selectedTextId) || null}
+          updateText={updateText} removeText={removeText}
+          addTitleBottom={addTitleBottom} addFreeText={addFreeText} addCaptionForCell={addCaptionForCell}
         />
       </div>
 
       <WallPreview open={wallOpen} onClose={() => setWallOpen(false)} previewUrl={wallUrl} loading={wallLoading} format={format} />
       <PrintSpec open={specOpen} onClose={() => setSpecOpen(false)} format={format} dpi={dpi} cells={cells}
         photosById={photosById} frame={frame} mat={mat} projectName={projectName} />
+      <FrameFinder open={frameFinderOpen} onClose={() => setFrameFinderOpen(false)} format={format} frameColor={frame.color} />
     </div>
   );
 }

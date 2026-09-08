@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field
-from PIL import Image, ImageOps, ImageEnhance, ImageDraw
+from PIL import Image, ImageOps, ImageEnhance, ImageDraw, ImageFont
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -76,6 +76,15 @@ def get_object(path: str) -> tuple[bytes, str]:
 
 MIME_TYPES = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "webp": "image/webp"}
 
+FONT_DIR = ROOT_DIR / "fonts"
+FONT_FILES = {
+    "playfair": str(FONT_DIR / "PlayfairDisplay.ttf"),
+    "cormorant": str(FONT_DIR / "CormorantGaramond.ttf"),
+    "montserrat": str(FONT_DIR / "Montserrat.ttf"),
+    "dancing": str(FONT_DIR / "DancingScript.ttf"),
+    "inter": str(FONT_DIR / "Inter.ttf"),
+}
+
 # ---------------------------------------------------------------------------
 # App
 # ---------------------------------------------------------------------------
@@ -124,6 +133,20 @@ class CellSpec(BaseModel):
     offsetX: float = 0.0
     offsetY: float = 0.0
     filter: str = "none"
+    rotation: float = 0.0
+
+
+class TextSpec(BaseModel):
+    id: Optional[str] = None
+    content: str = ""
+    x: float = 0.5          # fraction of canvas width (center anchor)
+    y: float = 0.5          # fraction of canvas height (center anchor)
+    size_cm: float = 1.2
+    color: str = "#18181A"
+    font: str = "playfair"
+    align: str = "center"
+    rotation: float = 0.0
+    letter_spacing: float = 0.0
 
 
 class CollageSpec(BaseModel):
@@ -135,6 +158,7 @@ class CollageSpec(BaseModel):
     corner_radius_cm: float = 0.0
     background_color: str = "#FFFFFF"
     cells: List[CellSpec] = Field(default_factory=list)
+    texts: List[TextSpec] = Field(default_factory=list)
 
 
 class ProjectIn(BaseModel):
@@ -213,7 +237,9 @@ async def resolve_photo_path(photo_id: str) -> Optional[str]:
     return rec["storage_path"] if rec else None
 
 
-def render_cell(img: Image.Image, cw: int, ch: int, zoom: float, offx: float, offy: float, filt: str) -> Image.Image:
+def render_cell(img: Image.Image, cw: int, ch: int, zoom: float, offx: float, offy: float, filt: str, rotation: float = 0.0) -> Image.Image:
+    if rotation:
+        img = img.rotate(-rotation, expand=True, resample=Image.BICUBIC)
     iw, ih = img.size
     cover = max(cw / iw, ch / ih)
     scale = cover * max(zoom, 0.05)
@@ -224,6 +250,42 @@ def render_cell(img: Image.Image, cw: int, ch: int, zoom: float, offx: float, of
     cell = Image.new("RGB", (cw, ch), (238, 238, 238))
     cell.paste(resized, (round(px), round(py)))
     return apply_filter(cell, filt)
+
+
+def _text_image(text: str, font: "ImageFont.FreeTypeFont", color_rgb: tuple, spacing_px: float) -> Image.Image:
+    if not text:
+        text = " "
+    ascent, descent = font.getmetrics()
+    widths = [font.getlength(c) for c in text]
+    total_w = sum(widths) + spacing_px * max(0, len(text) - 1)
+    h = ascent + descent
+    pad = max(6, int(h * 0.2))
+    img = Image.new("RGBA", (int(total_w) + 2 * pad, h + 2 * pad), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    x = pad
+    for c, w in zip(text, widths):
+        d.text((x, pad), c, font=font, fill=color_rgb + (255,))
+        x += w + spacing_px
+    return img
+
+
+def draw_texts(canvas: Image.Image, texts, dpi: int):
+    W, H = canvas.size
+    for t in texts:
+        if not (t.content or "").strip():
+            continue
+        path = FONT_FILES.get(t.font, FONT_FILES["playfair"])
+        size_px = max(8, cm_to_px(t.size_cm, dpi))
+        try:
+            font = ImageFont.truetype(path, size_px)
+        except Exception:
+            font = ImageFont.truetype(FONT_FILES["inter"], size_px)
+        spacing_px = t.letter_spacing * size_px
+        timg = _text_image(t.content, font, hex_to_rgb(t.color), spacing_px)
+        if t.rotation:
+            timg = timg.rotate(-t.rotation, expand=True, resample=Image.BICUBIC)
+        cx, cy = round(t.x * W), round(t.y * H)
+        canvas.paste(timg, (cx - timg.width // 2, cy - timg.height // 2), timg)
 
 
 async def build_collage(spec: CollageSpec) -> Image.Image:
@@ -267,7 +329,7 @@ async def build_collage(spec: CollageSpec) -> Image.Image:
         if not path:
             continue
         img = load_photo(path)
-        cell_img = render_cell(img, rw, rh, cell.zoom, cell.offsetX, cell.offsetY, cell.filter)
+        cell_img = render_cell(img, rw, rh, cell.zoom, cell.offsetX, cell.offsetY, cell.filter, cell.rotation)
         if radius > 0:
             mask = Image.new("L", (rw, rh), 0)
             ImageDraw.Draw(mask).rounded_rectangle([0, 0, rw - 1, rh - 1], radius=radius, fill=255)
@@ -275,6 +337,7 @@ async def build_collage(spec: CollageSpec) -> Image.Image:
         else:
             canvas.paste(cell_img, (rx, ry))
 
+    draw_texts(canvas, spec.texts, dpi)
     return canvas
 
 
