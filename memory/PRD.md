@@ -46,6 +46,10 @@
 - [x] Iterazione 5 (100% backend+frontend, iteration_5): Configuratore galleria + forma foto.
   - Numero riquadri 1–50 (slider + input), disposizione "Griglia regolare" o "Layout misti" con anteprime, spessore bordo tra i riquadri fino a 3cm. Motore layout: gridCells/gridVariants/mixedVariants/computeVariants.
   - Forma per singola foto (cella): Riempi, Quadrato 1:1, 4:3, 3:2, 3:4, 2:3 — la foto viene mostrata nel rapporto scelto, centrata nel riquadro, con sfondo attorno. Reso identico in preview ed export (render_cell inner box).
+- [x] Iterazione 6 (100% backend+frontend, iteration_6): Forma globale + packing intelligente.
+  - "Forma delle foto" globale (Riempi / Quadrato / rettangolari orizz. e vert.). Scegliendo una forma, l'app calcola il numero massimo di foto di quella forma che entrano nella cornice (in base all'area utile) e imposta quel massimo sul selettore riquadri.
+  - Griglie ottimali suggerite (es. 2×3, 3×3, 4×4) calcolate dal rapporto della cornice; un clic le applica con celle della forma scelta.
+  - Pulsante "Applica questa forma a tutti i riquadri" nella tab Cella. Utility: shapeTarget/shapeColsFor/suggestedGrids/maxShapesIn.
 
 ## Backlog / Prossimi passi (P1/P2)
 - Auto-disposizione intelligente / suggerimento layout in base al numero di foto caricate.

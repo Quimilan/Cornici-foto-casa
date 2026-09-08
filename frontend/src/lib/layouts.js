@@ -195,6 +195,51 @@ export function computeVariants(n, mode) {
   return mode === "mixed" ? mixedVariants(n) : gridVariants(n);
 }
 
+// ---- Shape-aware packing (square / rectangular photos into a frame) ----
+export function shapeTarget(shape) {
+  if (!shape || shape === "fill" || !shape.includes(":")) return null;
+  const [w, h] = shape.split(":").map(Number);
+  return h ? w / h : null;
+}
+
+// columns that best give cells matching `target` aspect for n photos in a content of aspect R
+export function shapeColsFor(n, contentAspect, target) {
+  const ratio = target / contentAspect; // desired rows/cols
+  let cols = Math.max(1, Math.round(Math.sqrt(n / ratio)));
+  return Math.min(cols, n);
+}
+
+// suggested regular grids whose cells match `target`, n<=50
+export function suggestedGrids(contentAspect, target) {
+  const ratio = target / contentAspect;
+  const seen = new Set();
+  const out = [];
+  for (let cols = 1; cols <= 10; cols++) {
+    const rows = Math.max(1, Math.round(cols * ratio));
+    const n = cols * rows;
+    if (n < 1 || n > 50 || seen.has(n)) continue;
+    seen.add(n);
+    out.push({ cols, rows, n, label: `${cols}×${rows}` });
+  }
+  out.sort((a, b) => a.n - b.n);
+  return out;
+}
+
+// largest number of `target`-shaped photos with min cell dimension >= minCellCm
+export function maxShapesIn(contentWcm, contentHcm, target, minCellCm = 5) {
+  const R = contentWcm / contentHcm;
+  const ratio = target / R;
+  let maxN = 1;
+  for (let cols = 1; cols <= 12; cols++) {
+    const rows = Math.max(1, Math.round(cols * ratio));
+    const cellW = contentWcm / cols, cellH = contentHcm / rows;
+    if (Math.min(cellW, cellH) < minCellCm) break;
+    const n = cols * rows;
+    if (n <= 50) maxN = Math.max(maxN, n);
+  }
+  return Math.min(50, maxN);
+}
+
 export function newCells(layoutKey) {
   const layout = LAYOUTS.find((l) => l.key === layoutKey) || LAYOUTS[5];
   return layout.cells.map((c) => ({

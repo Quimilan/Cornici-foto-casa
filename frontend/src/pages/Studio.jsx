@@ -10,6 +10,7 @@ import FrameFinder from "@/components/FrameFinder";
 import ExportDialog from "@/components/ExportDialog";
 import {
   FORMATS, orientedDims, computeVariants, decorateCells, newText,
+  gridCells, shapeTarget, shapeColsFor, suggestedGrids, maxShapesIn,
 } from "@/lib/layouts";
 import {
   fetchPhotos, importSamples, uploadPhoto, deletePhoto,
@@ -36,6 +37,7 @@ export default function Studio() {
   const [count, setCount] = useState(4);
   const [layoutMode, setLayoutMode] = useState("grid");
   const [variantKey, setVariantKey] = useState("g-4-2");
+  const [photoShape, setPhotoShape] = useState("fill");
   const [cells, setCells] = useState(() => decorateCells(computeVariants(4, "grid")[0].cells));
 
   const [frame, setFrame] = useState({ enabled: true, color: "#121212", width_cm: 2 });
@@ -101,12 +103,25 @@ export default function Studio() {
 
   const variants = useMemo(() => computeVariants(count, layoutMode), [count, layoutMode]);
 
-  const preserveInto = (rects) =>
+  // content area (inside frame + mat) drives shape packing
+  const framePad = (frame.enabled ? frame.width_cm : 0) + (mat.enabled ? mat.width_cm : 0);
+  const contentWcm = Math.max(1, format.w_cm - 2 * framePad);
+  const contentHcm = Math.max(1, format.h_cm - 2 * framePad);
+  const contentAspect = contentWcm / contentHcm;
+  const shapeT = shapeTarget(photoShape);
+  const maxCount = shapeT ? maxShapesIn(contentWcm, contentHcm, shapeT) : 50;
+  const suggestions = useMemo(
+    () => (shapeT ? suggestedGrids(contentAspect, shapeT).filter((s) => s.n <= maxCount) : []),
+    [shapeT, contentAspect, maxCount]
+  );
+
+  const preserveInto = (rects, aspect) =>
     decorateCells(rects).map((c, i) => {
       const prev = cells[i];
-      return prev
+      const base = prev
         ? { ...c, photoId: prev.photoId, zoom: prev.zoom, offsetX: prev.offsetX, offsetY: prev.offsetY, filter: prev.filter, rotation: prev.rotation, aspect: prev.aspect }
         : c;
+      return aspect ? { ...base, aspect } : base;
     });
 
   const selectVariant = (variant) => {
@@ -125,7 +140,41 @@ export default function Studio() {
     setCells(preserveInto(vs[0].cells));
   };
 
-  const handleSetCount = (n) => applyCountMode(n, layoutMode);
+  // Shape-driven grid: cells matched to the chosen photo shape
+  const applyShapeGrid = (n, shape, target) => {
+    const cnt = Math.max(1, Math.min(50, n));
+    const cols = shapeColsFor(cnt, contentAspect, target);
+    setCount(cnt);
+    setLayoutMode("grid");
+    setVariantKey(`shape-${cols}-${cnt}`);
+    setSelectedIndex(-1);
+    setCells(preserveInto(gridCells(cols, cnt), shape));
+  };
+
+  const handleSetShape = (shape) => {
+    setPhotoShape(shape);
+    if (shape === "fill") {
+      setCells((prev) => prev.map((c) => ({ ...c, aspect: "fill" })));
+      return;
+    }
+    const t = shapeTarget(shape);
+    const maxN = maxShapesIn(contentWcm, contentHcm, t);
+    const sug = suggestedGrids(contentAspect, t).filter((s) => s.n <= maxN);
+    const rec = sug.length
+      ? sug.reduce((a, b) => (Math.abs(b.n - 6) < Math.abs(a.n - 6) ? b : a))
+      : { n: Math.min(4, maxN) };
+    applyShapeGrid(rec.n, shape, t);
+  };
+
+  const applyAspectToAll = (aspect) => {
+    setCells((prev) => prev.map((c) => ({ ...c, aspect })));
+    setPhotoShape(aspect);
+  };
+
+  const handleSetCount = (n) => {
+    if (photoShape !== "fill" && shapeT) applyShapeGrid(Math.min(maxCount, n), photoShape, shapeT);
+    else applyCountMode(n, layoutMode);
+  };
   const handleSetMode = (m) => applyCountMode(count, m);
 
   const updateCell = (index, patch) => {
@@ -375,6 +424,8 @@ export default function Studio() {
         <SettingsPanel
           formatId={formatId} orientation={orientation}
           count={count} layoutMode={layoutMode} variants={variants} variantKey={variantKey}
+          photoShape={photoShape} setPhotoShape={handleSetShape} suggestions={suggestions} maxCount={maxCount} applySuggestion={(s) => applyShapeGrid(s.n, photoShape, shapeT)}
+          applyAspectToAll={applyAspectToAll}
           frame={frame} mat={mat} gapCm={gapCm} cornerRadiusCm={cornerRadiusCm} bg={bg} dpi={dpi} format={format} glass={glass}
           setFormatId={handleSetFormat} setOrientation={setOrientation}
           setCount={handleSetCount} setLayoutMode={handleSetMode} selectVariant={selectVariant}

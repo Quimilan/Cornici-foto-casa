@@ -1,0 +1,24 @@
+{
+  "summary": "Iteration 6: shape-driven packing + 'Forma a Tutte'. Backend: new /app/backend/tests/test_shape_pack.py (4/4) validates export of shape-packed specs (3x3 jpg, 2x3 png, 4x3 pdf) with all cells aspect='1:1' — page dims match round(cm/2.54*dpi), pdf %PDF header intact, and malformed aspect '1:0' returns 200 (safe guard active in render_cell). Regression: test_cell_aspect.py (9/9) + test_gallery_layout.py (5/5) still green. Frontend Playwright end-to-end: photo-shape-1x1 shows 'Massimo 40 foto quadrato in questa cornice.' with suggestions [1×2, 2×3, 3×5, 4×6, 5×8]; count-input max becomes 40 (not 50); auto-applies suggested grid (~6 photos, footer '6 riquadri'); clicking suggested-grid-2x3 keeps '6 riquadri'; photo-shape-3x2 vertical → suggestions [1x2,2x5,3x7,4x9]; switching to orientation-horizontal recomputes suggestions to [1x1..7x7]; photo-shape-fill restores max=50, layout-mode-grid + layout-variant-0..N visible; in Cella tab selecting cell-item-0, cell-aspect-1x1, then apply-aspect-to-all sets ALL 4 cells to square (photo-shape-1x1 becomes active in Formato tab, visible white margins above/below each square in canvas). Zero console/page errors.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_shape_pack.py",
+    "/app/test_reports/pytest/iter6_shape_pack.xml",
+    "/app/test_reports/pytest/iter6_regression.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "layouts.js::maxShapesIn iterates cols 1..12 with break-on-minCell. When ratio*cols rounds to 0 for extreme aspects (very wide frames with tall target), rows is clamped to 1 which is fine, but the loop still `break`s on first cellH<5 possibly missing larger cols valid packings. Consider `continue` instead of `break`.",
+    "Studio.jsx::handleSetShape picks 'nearest to 6' suggestion; when maxCount<6 (very small content area), it falls back to Math.min(4,maxN); acceptable but users editing frame width AFTER selecting shape must click a suggested-grid again to re-fit — could auto-recompute in a useEffect when contentAspect/maxCount changes.",
+    "SettingsPanel.jsx uses `SHAPES.find(...).label.toLowerCase()` for 'Massimo' caption; for 'Orizz. 3:2' this yields 'orizz. 3:2 foto' which is awkward Italian — consider a shorter noun (e.g. 'rettangolari' or the raw ratio).",
+    "shape testid convention '1:1' -> '1x1' documented; keep in sync with test suites."
+  ],
+  "updated_files": ["/app/backend/tests/test_shape_pack.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "seed_data_creation": "Reused /api/import-samples (idempotent).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Shape-driven packing verified. Selectors: photo-shape-{fill,1x1,3x2,4x3,2x3,3x4}, suggested-grid-{COLS}x{ROWS}, apply-aspect-to-all, cell-aspect-{fill,1x1,4x3,3x2,3x4,2x3}. To select a cell in canvas, use cell-item-{index} (not clicking img). Count-input max reflects maxCount when shape!=fill and 50 when fill. photo-shape-fill only resets aspect on cells (does NOT change grid layout back). If a future iteration changes 'Massimo' caption wording, keep the 'Massimo <N>' substring for test compatibility.",
+  "rca of the issue": "N/A - no bugs found in this iteration."
+}

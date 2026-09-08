@@ -34,6 +34,15 @@ const MANDATED_UNUSED = {};
 
 const TEXT_COLORS = ["#18181A", "#FFFFFF", "#E2B15D", "#8a6d3b", "#6B7280", "#B91C1C"];
 
+const SHAPES = [
+  { id: "fill", label: "Riempi" },
+  { id: "1:1", label: "Quadrato" },
+  { id: "3:2", label: "Orizz. 3:2" },
+  { id: "4:3", label: "Orizz. 4:3" },
+  { id: "2:3", label: "Vert. 2:3" },
+  { id: "3:4", label: "Vert. 3:4" },
+];
+
 function Section({ label, children }) {
   return (
     <div className="space-y-2.5">
@@ -66,6 +75,7 @@ function LabeledSlider({ label, display, unit, ...rest }) {
 export default function SettingsPanel(props) {
   const {
     formatId, orientation, count, layoutMode, variants, variantKey, frame, mat, gapCm, cornerRadiusCm, bg, dpi, format, glass,
+    photoShape, setPhotoShape, suggestions, maxCount, applySuggestion, applyAspectToAll,
     setFormatId, setOrientation, setCount, setLayoutMode, selectVariant,
     setFrame, setMat, setGapCm, setCornerRadiusCm, setBg, setDpi, setGlass,
     onOpenFrameFinder,
@@ -144,38 +154,83 @@ export default function SettingsPanel(props) {
               </div>
             </Section>
 
-            <Section label="Numero di riquadri">
-              <div className="flex items-center gap-3">
-                <Slider className="flex-1" data-testid="riquadri-count-slider" value={[count]} min={1} max={50} step={1}
-                  onValueChange={([v]) => setCount(v)} />
-                <Input data-testid="riquadri-count-input" type="number" min={1} max={50} value={count}
-                  onChange={(e) => setCount(parseInt(e.target.value || "1", 10))}
-                  className="w-16 h-9 bg-[#1e2028] border-[#2e323d] text-gray-100 text-center" />
-              </div>
-              <p className="text-[11px] text-gray-500">Da 1 a 50 foto, ognuna nel suo riquadro separato.</p>
-            </Section>
-
-            <Section label="Disposizione">
-              <div className="grid grid-cols-2 gap-2 mb-1">
-                <button data-testid="layout-mode-grid" onClick={() => setLayoutMode("grid")}
-                  className={`px-3 py-2 rounded-lg border text-xs font-medium transition-colors ${layoutMode === "grid" ? "border-[#e2b15d] bg-[#e2b15d]/10 text-[#e2b15d]" : "border-[#2e323d] text-gray-300 hover:bg-[#23262f]"}`}>
-                  Griglia regolare
-                </button>
-                <button data-testid="layout-mode-mixed" onClick={() => setLayoutMode("mixed")}
-                  className={`px-3 py-2 rounded-lg border text-xs font-medium transition-colors ${layoutMode === "mixed" ? "border-[#e2b15d] bg-[#e2b15d]/10 text-[#e2b15d]" : "border-[#2e323d] text-gray-300 hover:bg-[#23262f]"}`}>
-                  Layout misti
-                </button>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {variants.map((v, i) => (
-                  <button key={v.key} data-testid={`layout-variant-${i}`} onClick={() => selectVariant(v)}
-                    className={`flex flex-col items-center gap-2 px-2 py-2.5 rounded-lg border text-xs font-medium transition-colors ${variantKey === v.key ? "border-[#e2b15d] bg-[#e2b15d]/10 text-[#e2b15d]" : "border-[#2e323d] text-gray-300 hover:bg-[#23262f]"}`}>
-                    <LayoutThumb cells={v.cells} active={variantKey === v.key} />
-                    {v.label}
+            <Section label="Forma delle foto">
+              <div className="grid grid-cols-3 gap-2">
+                {SHAPES.map((s) => (
+                  <button key={s.id} data-testid={`photo-shape-${s.id.replace(":", "x")}`}
+                    onClick={() => setPhotoShape(s.id)}
+                    className={`px-2 py-2 rounded-lg border text-xs transition-colors ${photoShape === s.id ? "border-[#e2b15d] bg-[#e2b15d]/10 text-[#e2b15d]" : "border-[#2e323d] text-gray-300 hover:bg-[#23262f]"}`}>
+                    {s.label}
                   </button>
                 ))}
               </div>
+              {photoShape !== "fill" && (
+                <p className="text-[11px] text-[#e2b15d] mt-1">
+                  Massimo {maxCount} foto in questa cornice · scegli una griglia consigliata qui sotto.
+                </p>
+              )}
             </Section>
+
+            {photoShape !== "fill" ? (
+              <>
+                <Section label="Griglie suggerite">
+                  <div className="grid grid-cols-3 gap-2">
+                    {suggestions.map((s) => (
+                      <button key={`${s.cols}x${s.rows}`} data-testid={`suggested-grid-${s.cols}x${s.rows}`}
+                        onClick={() => applySuggestion(s)}
+                        className={`flex flex-col items-center gap-1.5 px-2 py-2 rounded-lg border text-xs transition-colors ${count === s.n ? "border-[#e2b15d] bg-[#e2b15d]/10 text-[#e2b15d]" : "border-[#2e323d] text-gray-300 hover:bg-[#23262f]"}`}>
+                        <span className="font-mono">{s.label}</span>
+                        <span className="text-[10px] text-gray-500">{s.n} foto</span>
+                      </button>
+                    ))}
+                  </div>
+                </Section>
+                <Section label="Numero di riquadri">
+                  <div className="flex items-center gap-3">
+                    <Slider className="flex-1" data-testid="riquadri-count-slider" value={[count]} min={1} max={maxCount} step={1}
+                      onValueChange={([v]) => setCount(v)} />
+                    <Input data-testid="riquadri-count-input" type="number" min={1} max={maxCount} value={count}
+                      onChange={(e) => setCount(parseInt(e.target.value || "1", 10))}
+                      className="w-16 h-9 bg-[#1e2028] border-[#2e323d] text-gray-100 text-center" />
+                  </div>
+                </Section>
+              </>
+            ) : (
+              <>
+                <Section label="Numero di riquadri">
+                  <div className="flex items-center gap-3">
+                    <Slider className="flex-1" data-testid="riquadri-count-slider" value={[count]} min={1} max={50} step={1}
+                      onValueChange={([v]) => setCount(v)} />
+                    <Input data-testid="riquadri-count-input" type="number" min={1} max={50} value={count}
+                      onChange={(e) => setCount(parseInt(e.target.value || "1", 10))}
+                      className="w-16 h-9 bg-[#1e2028] border-[#2e323d] text-gray-100 text-center" />
+                  </div>
+                  <p className="text-[11px] text-gray-500">Da 1 a 50 foto, ognuna nel suo riquadro separato.</p>
+                </Section>
+
+                <Section label="Disposizione">
+                  <div className="grid grid-cols-2 gap-2 mb-1">
+                    <button data-testid="layout-mode-grid" onClick={() => setLayoutMode("grid")}
+                      className={`px-3 py-2 rounded-lg border text-xs font-medium transition-colors ${layoutMode === "grid" ? "border-[#e2b15d] bg-[#e2b15d]/10 text-[#e2b15d]" : "border-[#2e323d] text-gray-300 hover:bg-[#23262f]"}`}>
+                      Griglia regolare
+                    </button>
+                    <button data-testid="layout-mode-mixed" onClick={() => setLayoutMode("mixed")}
+                      className={`px-3 py-2 rounded-lg border text-xs font-medium transition-colors ${layoutMode === "mixed" ? "border-[#e2b15d] bg-[#e2b15d]/10 text-[#e2b15d]" : "border-[#2e323d] text-gray-300 hover:bg-[#23262f]"}`}>
+                      Layout misti
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {variants.map((v, i) => (
+                      <button key={v.key} data-testid={`layout-variant-${i}`} onClick={() => selectVariant(v)}
+                        className={`flex flex-col items-center gap-2 px-2 py-2.5 rounded-lg border text-xs font-medium transition-colors ${variantKey === v.key ? "border-[#e2b15d] bg-[#e2b15d]/10 text-[#e2b15d]" : "border-[#2e323d] text-gray-300 hover:bg-[#23262f]"}`}>
+                        <LayoutThumb cells={v.cells} active={variantKey === v.key} />
+                        {v.label}
+                      </button>
+                    ))}
+                  </div>
+                </Section>
+              </>
+            )}
           </TabsContent>
 
           {/* CORNICE */}
@@ -287,6 +342,10 @@ export default function SettingsPanel(props) {
                           </button>
                         ))}
                       </div>
+                      <button data-testid="apply-aspect-to-all" onClick={() => applyAspectToAll(selectedCell.aspect || "fill")}
+                        className="w-full mt-1 px-3 py-2 rounded-lg border border-[#e2b15d]/40 text-[#e2b15d] text-xs hover:bg-[#e2b15d]/10 transition-colors">
+                        Applica questa forma a tutti i riquadri
+                      </button>
                       <p className="text-[11px] text-gray-500">"Quadrato" mostra la foto in formato 1:1 dentro il riquadro.</p>
                     </Section>
 
