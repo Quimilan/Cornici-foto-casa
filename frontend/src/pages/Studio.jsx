@@ -9,7 +9,7 @@ import PrintSpec from "@/components/PrintSpec";
 import FrameFinder from "@/components/FrameFinder";
 import ExportDialog from "@/components/ExportDialog";
 import {
-  FORMATS, orientedDims, newCells, LAYOUTS, chooseBestLayout, newText,
+  FORMATS, orientedDims, computeVariants, decorateCells, newText,
 } from "@/lib/layouts";
 import {
   fetchPhotos, importSamples, uploadPhoto, deletePhoto,
@@ -33,8 +33,10 @@ export default function Studio() {
 
   const [formatId, setFormatId] = useState("50x70");
   const [orientation, setOrientation] = useState("vertical");
-  const [layoutKey, setLayoutKey] = useState("4-grid");
-  const [cells, setCells] = useState(() => newCells("4-grid"));
+  const [count, setCount] = useState(4);
+  const [layoutMode, setLayoutMode] = useState("grid");
+  const [variantKey, setVariantKey] = useState("g-4-2");
+  const [cells, setCells] = useState(() => decorateCells(computeVariants(4, "grid")[0].cells));
 
   const [frame, setFrame] = useState({ enabled: true, color: "#121212", width_cm: 2 });
   const [mat, setMat] = useState({ enabled: true, color: "#FFFFFF", width_cm: 3 });
@@ -97,15 +99,34 @@ export default function Studio() {
     else if (orientation === "square") setOrientation("vertical");
   };
 
-  // Layout change preserves assignments by index
-  const handleSetLayout = (key) => {
-    setLayoutKey(key);
-    setSelectedIndex(-1);
-    setCells((prev) => {
-      const next = newCells(key);
-      return next.map((c, i) => (prev[i] ? { ...c, photoId: prev[i].photoId, zoom: prev[i].zoom, offsetX: prev[i].offsetX, offsetY: prev[i].offsetY, filter: prev[i].filter } : c));
+  const variants = useMemo(() => computeVariants(count, layoutMode), [count, layoutMode]);
+
+  const preserveInto = (rects) =>
+    decorateCells(rects).map((c, i) => {
+      const prev = cells[i];
+      return prev
+        ? { ...c, photoId: prev.photoId, zoom: prev.zoom, offsetX: prev.offsetX, offsetY: prev.offsetY, filter: prev.filter, rotation: prev.rotation, aspect: prev.aspect }
+        : c;
     });
+
+  const selectVariant = (variant) => {
+    setVariantKey(variant.key);
+    setSelectedIndex(-1);
+    setCells(preserveInto(variant.cells));
   };
+
+  const applyCountMode = (nextCount, nextMode) => {
+    const c = Math.max(1, Math.min(50, nextCount));
+    setCount(c);
+    setLayoutMode(nextMode);
+    const vs = computeVariants(c, nextMode);
+    setVariantKey(vs[0].key);
+    setSelectedIndex(-1);
+    setCells(preserveInto(vs[0].cells));
+  };
+
+  const handleSetCount = (n) => applyCountMode(n, layoutMode);
+  const handleSetMode = (m) => applyCountMode(count, m);
 
   const updateCell = (index, patch) => {
     setCells((prev) => prev.map((c, i) => (i === index ? { ...c, ...patch } : c)));
@@ -176,7 +197,7 @@ export default function Studio() {
     background_color: bg,
     cells: cells.map((c) => ({
       x: c.x, y: c.y, w: c.w, h: c.h,
-      photoId: c.photoId, zoom: c.zoom, offsetX: c.offsetX, offsetY: c.offsetY, filter: c.filter, rotation: c.rotation || 0,
+      photoId: c.photoId, zoom: c.zoom, offsetX: c.offsetX, offsetY: c.offsetY, filter: c.filter, rotation: c.rotation || 0, aspect: c.aspect || "fill",
     })),
     texts: texts.map((t) => ({
       id: t.id, content: t.content, x: t.x, y: t.y, size_cm: t.size_cm,
@@ -185,13 +206,16 @@ export default function Studio() {
   }), [format, dpi, frame, mat, gapCm, cornerRadiusCm, bg, cells, texts]);
 
   const autoArrange = () => {
-    const avail = photos.slice(0, 12);
+    const avail = photos.slice(0, 50);
     if (avail.length === 0) return;
-    const key = chooseBestLayout(avail.length);
-    setLayoutKey(key);
+    const n = avail.length;
+    const vs = computeVariants(n, "grid");
+    setCount(n);
+    setLayoutMode("grid");
+    setVariantKey(vs[0].key);
     setSelectedIndex(-1);
-    setCells(() => newCells(key).map((c, i) => (avail[i] ? { ...c, photoId: avail[i].id } : c)));
-    toast.success(`Disposizione automatica: ${LAYOUTS.find((l) => l.key === key)?.label}`);
+    setCells(decorateCells(vs[0].cells).map((c, i) => (avail[i] ? { ...c, photoId: avail[i].id } : c)));
+    toast.success(`Disposizione automatica · ${n} riquadri`);
   };
 
   const addText = (partial) => {
@@ -243,7 +267,7 @@ export default function Studio() {
 
   const onSave = async () => {
     try {
-      await saveProject({ name: projectName || "Senza titolo", formatId, orientation, layoutKey, spec: buildSpec() });
+      await saveProject({ name: projectName || "Senza titolo", formatId, orientation, layoutKey: variantKey, spec: buildSpec() });
       toast.success("Progetto salvato");
       refreshProjects();
     } catch (e) {
@@ -255,7 +279,6 @@ export default function Studio() {
     setProjectName(p.name);
     setFormatId(p.formatId);
     setOrientation(p.orientation);
-    setLayoutKey(p.layoutKey);
     const s = p.spec;
     setFrame(s.frame);
     setMat(s.mat);
@@ -264,6 +287,9 @@ export default function Studio() {
     setBg(s.background_color);
     setDpi(s.dpi);
     setCells(s.cells.map((c) => ({ rotation: 0, ...c })));
+    setCount(s.cells.length);
+    setLayoutMode("grid");
+    setVariantKey(p.layoutKey || "custom");
     setTexts((s.texts || []).map((t) => ({ ...t })));
     setSelectedIndex(-1);
     setSelectedTextId(null);
@@ -338,7 +364,7 @@ export default function Studio() {
           <div className="h-9 shrink-0 border-t border-[#2e323d] flex items-center px-4 gap-4 text-[11px] text-gray-500 font-mono">
             <span>{format.w_cm} × {format.h_cm} cm</span>
             <span>·</span>
-            <span>{LAYOUTS.find((l) => l.key === layoutKey)?.count} foto</span>
+            <span>{cells.length} riquadri</span>
             <span>·</span>
             <span>{cells.filter((c) => c.photoId).length} inserite</span>
             <span className="flex-1" />
@@ -347,9 +373,11 @@ export default function Studio() {
         </main>
 
         <SettingsPanel
-          formatId={formatId} orientation={orientation} layoutKey={layoutKey}
+          formatId={formatId} orientation={orientation}
+          count={count} layoutMode={layoutMode} variants={variants} variantKey={variantKey}
           frame={frame} mat={mat} gapCm={gapCm} cornerRadiusCm={cornerRadiusCm} bg={bg} dpi={dpi} format={format} glass={glass}
-          setFormatId={handleSetFormat} setOrientation={setOrientation} setLayoutKey={handleSetLayout}
+          setFormatId={handleSetFormat} setOrientation={setOrientation}
+          setCount={handleSetCount} setLayoutMode={handleSetMode} selectVariant={selectVariant}
           setFrame={setFrame} setMat={setMat} setGapCm={setGapCm} setCornerRadiusCm={setCornerRadiusCm} setBg={setBg} setDpi={setDpi} setGlass={setGlass}
           onOpenFrameFinder={() => setFrameFinderOpen(true)}
           selectedIndex={selectedIndex} selectedCell={selectedCell} photosById={photosById}

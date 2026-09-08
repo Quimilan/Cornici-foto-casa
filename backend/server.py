@@ -166,6 +166,7 @@ class CellSpec(BaseModel):
     offsetY: float = 0.0
     filter: str = "none"
     rotation: float = 0.0
+    aspect: str = "fill"
 
 
 class TextSpec(BaseModel):
@@ -275,19 +276,41 @@ async def resolve_photo_path(photo_id: str) -> Optional[str]:
     return rec["storage_path"] if rec else None
 
 
-def render_cell(img: Image.Image, cw: int, ch: int, zoom: float, offx: float, offy: float, filt: str, rotation: float = 0.0) -> Image.Image:
+def render_cell(img: Image.Image, cw: int, ch: int, zoom: float, offx: float, offy: float, filt: str, rotation: float = 0.0, aspect: str = "fill", bg_rgb: tuple = (238, 238, 238)) -> Image.Image:
+    # inner box respecting a target aspect ratio (square, 3:2, ...)
+    if aspect and aspect != "fill" and ":" in aspect:
+        try:
+            tw, th = (float(v) for v in aspect.split(":"))
+            target = tw / th if th else 0
+        except (ValueError, ZeroDivisionError):
+            target = 0
+        if target > 0:
+            if cw / ch > target:
+                bh = ch; bw = ch * target
+            else:
+                bw = cw; bh = cw / target
+            bw, bh = max(1, round(bw)), max(1, round(bh))
+        else:
+            bw, bh = cw, ch
+    else:
+        bw, bh = cw, ch
     if rotation:
         img = img.rotate(-rotation, expand=True, resample=Image.BICUBIC)
     iw, ih = img.size
-    cover = max(cw / iw, ch / ih)
+    cover = max(bw / iw, bh / ih)
     scale = cover * max(zoom, 0.05)
     dw, dh = max(1, round(iw * scale)), max(1, round(ih * scale))
     resized = img.resize((dw, dh), Image.LANCZOS)
-    px = (cw - dw) / 2 + offx * (dw - cw) / 2
-    py = (ch - dh) / 2 + offy * (dh - ch) / 2
-    cell = Image.new("RGB", (cw, ch), (238, 238, 238))
-    cell.paste(resized, (round(px), round(py)))
-    return apply_filter(cell, filt)
+    px = (bw - dw) / 2 + offx * (dw - bw) / 2
+    py = (bh - dh) / 2 + offy * (dh - bh) / 2
+    inner = Image.new("RGB", (bw, bh), bg_rgb)
+    inner.paste(resized, (round(px), round(py)))
+    inner = apply_filter(inner, filt)
+    if bw == cw and bh == ch:
+        return inner
+    cell = Image.new("RGB", (cw, ch), bg_rgb)
+    cell.paste(inner, ((cw - bw) // 2, (ch - bh) // 2))
+    return cell
 
 
 def _text_image(text: str, font: "ImageFont.FreeTypeFont", color_rgb: tuple, spacing_px: float) -> Image.Image:
@@ -367,7 +390,7 @@ async def build_collage(spec: CollageSpec) -> Image.Image:
         if not path:
             continue
         img = load_photo(path)
-        cell_img = render_cell(img, rw, rh, cell.zoom, cell.offsetX, cell.offsetY, cell.filter, cell.rotation)
+        cell_img = render_cell(img, rw, rh, cell.zoom, cell.offsetX, cell.offsetY, cell.filter, cell.rotation, cell.aspect, hex_to_rgb(spec.background_color))
         if radius > 0:
             mask = Image.new("L", (rw, rh), 0)
             ImageDraw.Draw(mask).rounded_rectangle([0, 0, rw - 1, rh - 1], radius=radius, fill=255)

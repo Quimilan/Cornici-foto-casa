@@ -3,11 +3,22 @@ import { photoUrl } from "@/lib/api";
 import { CSS_FILTERS, fontCss } from "@/lib/layouts";
 import { ImagePlus } from "lucide-react";
 
-function Cell({ cell, index, photo, contentW, contentH, gapPx, radiusPx, selected, onSelect, onUpdate, onDrop }) {
+function Cell({ cell, index, photo, contentW, contentH, gapPx, radiusPx, bg, selected, onSelect, onUpdate, onDrop }) {
   const drag = useRef(null);
 
   const cw = Math.max(1, cell.w * contentW - gapPx);
   const ch = Math.max(1, cell.h * contentH - gapPx);
+
+  // inner box for a target aspect (square, 3:2, ...)
+  let bw = cw, bh = ch, boxLeft = 0, boxTop = 0;
+  if (cell.aspect && cell.aspect !== "fill" && cell.aspect.includes(":")) {
+    const [tw, th] = cell.aspect.split(":").map(Number);
+    const target = tw / th;
+    if (cw / ch > target) { bh = ch; bw = ch * target; }
+    else { bw = cw; bh = cw / target; }
+    boxLeft = (cw - bw) / 2;
+    boxTop = (ch - bh) / 2;
+  }
 
   let inner = null;
   if (photo) {
@@ -17,12 +28,12 @@ function Cell({ cell, index, photo, contentW, contentH, gapPx, radiusPx, selecte
     const iw = photo.width, ih = photo.height;
     const RW = iw * cos + ih * sin;
     const RH = iw * sin + ih * cos;
-    const cover = Math.max(cw / RW, ch / RH);
+    const cover = Math.max(bw / RW, bh / RH);
     const scale = cover * cell.zoom;
-    const sw = iw * scale, sh = ih * scale;       // unrotated display size
-    const dw = RW * scale, dh = RH * scale;        // rotated bounding box
-    const px = (cw - dw) / 2 + cell.offsetX * (dw - cw) / 2;
-    const py = (ch - dh) / 2 + cell.offsetY * (dh - ch) / 2;
+    const sw = iw * scale, sh = ih * scale;
+    const dw = RW * scale, dh = RH * scale;
+    const px = (bw - dw) / 2 + cell.offsetX * (dw - bw) / 2;
+    const py = (bh - dh) / 2 + cell.offsetY * (dh - bh) / 2;
     const cx = px + dw / 2, cy = py + dh / 2;
     inner = {
       position: "absolute",
@@ -37,7 +48,7 @@ function Cell({ cell, index, photo, contentW, contentH, gapPx, radiusPx, selecte
       backgroundRepeat: "no-repeat",
       filter: CSS_FILTERS[cell.filter] || "none",
     };
-    drag.metrics = { rangeX: (dw - cw) / 2 || 1, rangeY: (dh - ch) / 2 || 1 };
+    drag.metrics = { rangeX: (dw - bw) / 2 || 1, rangeY: (dh - bh) / 2 || 1 };
   }
 
   const onPointerDown = (e) => {
@@ -84,13 +95,15 @@ function Cell({ cell, index, photo, contentW, contentH, gapPx, radiusPx, selecte
         cursor: photo ? "move" : "pointer",
         outline: selected ? "2px solid #e2b15d" : "1px solid rgba(0,0,0,0.08)",
         outlineOffset: selected ? "1px" : "0",
-        background: photo ? "#eee" : "rgba(0,0,0,0.04)",
+        background: bg || "#eee",
         boxShadow: selected ? "0 0 0 4px rgba(226,177,93,0.18)" : "none",
         transition: "box-shadow 0.15s ease, outline-color 0.15s ease",
       }}
     >
       {photo ? (
-        <div style={inner} />
+        <div style={{ position: "absolute", left: `${boxLeft}px`, top: `${boxTop}px`, width: `${bw}px`, height: `${bh}px`, overflow: "hidden", borderRadius: `${radiusPx}px`, background: bg || "#eee" }}>
+          <div style={inner} />
+        </div>
       ) : (
         <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 gap-1 pointer-events-none">
           <ImagePlus className="w-5 h-5 opacity-60" />
@@ -228,7 +241,7 @@ export default function CanvasStage({
                 <Cell
                   key={i} cell={cell} index={i}
                   photo={cell.photoId ? photosById[cell.photoId] : null}
-                  contentW={contentW} contentH={contentH} gapPx={gapPx} radiusPx={radiusPx}
+                  contentW={contentW} contentH={contentH} gapPx={gapPx} radiusPx={radiusPx} bg={bg}
                   selected={selectedIndex === i}
                   onSelect={onSelectCell} onUpdate={onUpdateCell} onDrop={onDropPhoto}
                 />

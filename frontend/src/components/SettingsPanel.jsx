@@ -8,20 +8,29 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { photoUrl } from "@/lib/api";
 import {
-  FORMATS, LAYOUTS, FILTERS, FRAME_COLORS, MAT_COLORS, FONTS, fontCss,
+  FORMATS, FILTERS, FRAME_COLORS, MAT_COLORS, FONTS, fontCss,
 } from "@/lib/layouts";
 import {
   RectangleVertical, RectangleHorizontal, Square, RotateCcw, RotateCw, X,
   Type, Heading, MessageSquare, Trash2, ShoppingBag,
 } from "lucide-react";
 
-const MANDATED = {
-  "2-cols": "layout-grid-option-2",
-  "3-1big-2": "layout-grid-option-3",
-  "4-grid": "layout-grid-option-4",
-  "6-grid": "layout-grid-option-6",
-  "9-grid": "layout-grid-option-9",
-};
+function LayoutThumb({ cells, active }) {
+  return (
+    <div className="relative w-full rounded-sm bg-black/20" style={{ aspectRatio: "3 / 4" }}>
+      {cells.map((c, i) => (
+        <div key={i} className="absolute rounded-[1px]" style={{
+          left: `${c.x * 100}%`, top: `${c.y * 100}%`, width: `${c.w * 100}%`, height: `${c.h * 100}%`,
+          padding: "1px",
+        }}>
+          <div className="w-full h-full rounded-[1px]" style={{ background: active ? "#e2b15d" : "#6b7280" }} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const MANDATED_UNUSED = {};
 
 const TEXT_COLORS = ["#18181A", "#FFFFFF", "#E2B15D", "#8a6d3b", "#6B7280", "#B91C1C"];
 
@@ -56,8 +65,9 @@ function LabeledSlider({ label, display, unit, ...rest }) {
 
 export default function SettingsPanel(props) {
   const {
-    formatId, orientation, layoutKey, frame, mat, gapCm, cornerRadiusCm, bg, dpi, format, glass,
-    setFormatId, setOrientation, setLayoutKey, setFrame, setMat, setGapCm, setCornerRadiusCm, setBg, setDpi, setGlass,
+    formatId, orientation, count, layoutMode, variants, variantKey, frame, mat, gapCm, cornerRadiusCm, bg, dpi, format, glass,
+    setFormatId, setOrientation, setCount, setLayoutMode, selectVariant,
+    setFrame, setMat, setGapCm, setCornerRadiusCm, setBg, setDpi, setGlass,
     onOpenFrameFinder,
     selectedIndex, selectedCell, photosById, updateCell, clearCell,
     texts, selectedText, updateText, removeText, addTitleBottom, addFreeText, addCaptionForCell,
@@ -134,12 +144,34 @@ export default function SettingsPanel(props) {
               </div>
             </Section>
 
-            <Section label="Disposizione foto">
+            <Section label="Numero di riquadri">
+              <div className="flex items-center gap-3">
+                <Slider className="flex-1" data-testid="riquadri-count-slider" value={[count]} min={1} max={50} step={1}
+                  onValueChange={([v]) => setCount(v)} />
+                <Input data-testid="riquadri-count-input" type="number" min={1} max={50} value={count}
+                  onChange={(e) => setCount(parseInt(e.target.value || "1", 10))}
+                  className="w-16 h-9 bg-[#1e2028] border-[#2e323d] text-gray-100 text-center" />
+              </div>
+              <p className="text-[11px] text-gray-500">Da 1 a 50 foto, ognuna nel suo riquadro separato.</p>
+            </Section>
+
+            <Section label="Disposizione">
+              <div className="grid grid-cols-2 gap-2 mb-1">
+                <button data-testid="layout-mode-grid" onClick={() => setLayoutMode("grid")}
+                  className={`px-3 py-2 rounded-lg border text-xs font-medium transition-colors ${layoutMode === "grid" ? "border-[#e2b15d] bg-[#e2b15d]/10 text-[#e2b15d]" : "border-[#2e323d] text-gray-300 hover:bg-[#23262f]"}`}>
+                  Griglia regolare
+                </button>
+                <button data-testid="layout-mode-mixed" onClick={() => setLayoutMode("mixed")}
+                  className={`px-3 py-2 rounded-lg border text-xs font-medium transition-colors ${layoutMode === "mixed" ? "border-[#e2b15d] bg-[#e2b15d]/10 text-[#e2b15d]" : "border-[#2e323d] text-gray-300 hover:bg-[#23262f]"}`}>
+                  Layout misti
+                </button>
+              </div>
               <div className="grid grid-cols-2 gap-2">
-                {LAYOUTS.map((l) => (
-                  <button key={l.key} data-testid={MANDATED[l.key] || `layout-${l.key}`} onClick={() => setLayoutKey(l.key)}
-                    className={`text-left px-3 py-2.5 rounded-lg border text-xs font-medium transition-colors ${layoutKey === l.key ? "border-[#e2b15d] bg-[#e2b15d]/10 text-[#e2b15d]" : "border-[#2e323d] text-gray-300 hover:bg-[#23262f]"}`}>
-                    {l.label}
+                {variants.map((v, i) => (
+                  <button key={v.key} data-testid={`layout-variant-${i}`} onClick={() => selectVariant(v)}
+                    className={`flex flex-col items-center gap-2 px-2 py-2.5 rounded-lg border text-xs font-medium transition-colors ${variantKey === v.key ? "border-[#e2b15d] bg-[#e2b15d]/10 text-[#e2b15d]" : "border-[#2e323d] text-gray-300 hover:bg-[#23262f]"}`}>
+                    <LayoutThumb cells={v.cells} active={variantKey === v.key} />
+                    {v.label}
                   </button>
                 ))}
               </div>
@@ -186,7 +218,7 @@ export default function SettingsPanel(props) {
             </Section>
 
             <Section label="Griglia">
-              <LabeledSlider label="Spaziatura tra foto" display={gapCm.toFixed(1)} unit=" cm" value={[gapCm]} min={0} max={2} step={0.1} onValueChange={([v]) => setGapCm(v)} />
+              <LabeledSlider label="Spessore bordo tra i riquadri" display={gapCm.toFixed(1)} unit=" cm" value={[gapCm]} min={0} max={3} step={0.1} onValueChange={([v]) => setGapCm(v)} />
               <LabeledSlider label="Angoli arrotondati" display={cornerRadiusCm.toFixed(1)} unit=" cm" value={[cornerRadiusCm]} min={0} max={2} step={0.1} onValueChange={([v]) => setCornerRadiusCm(v)} />
               <div className="flex gap-3 pt-1">
                 {["#FFFFFF", "#000000", "#F8F5EE"].map((c) => (<Swatch key={c} testid={`bg-color-${c}`} label="Sfondo" color={c} active={bg === c} onClick={() => setBg(c)} />))}
@@ -236,6 +268,26 @@ export default function SettingsPanel(props) {
                       </div>
                       <LabeledSlider label="Angolo preciso" display={Math.round(selectedCell.rotation)} unit="°" value={[selectedCell.rotation]} min={-180} max={180} step={1} onValueChange={([v]) => updateCell(selectedIndex, { rotation: v })} />
                       <p className="text-[11px] text-gray-500">Ruotando aumenta lo zoom per riempire la cella.</p>
+                    </Section>
+
+                    <Section label="Forma della foto">
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { id: "fill", label: "Riempi" },
+                          { id: "1:1", label: "Quadrato" },
+                          { id: "4:3", label: "4:3" },
+                          { id: "3:2", label: "3:2" },
+                          { id: "3:4", label: "Verticale 3:4" },
+                          { id: "2:3", label: "Verticale 2:3" },
+                        ].map((a) => (
+                          <button key={a.id} data-testid={`cell-aspect-${a.id.replace(":", "x")}`}
+                            onClick={() => updateCell(selectedIndex, { aspect: a.id })}
+                            className={`px-2 py-2 rounded-lg border text-xs transition-colors ${(selectedCell.aspect || "fill") === a.id ? "border-[#e2b15d] bg-[#e2b15d]/10 text-[#e2b15d]" : "border-[#2e323d] text-gray-300 hover:bg-[#23262f]"}`}>
+                            {a.label}
+                          </button>
+                        ))}
+                      </div>
+                      <p className="text-[11px] text-gray-500">"Quadrato" mostra la foto in formato 1:1 dentro il riquadro.</p>
                     </Section>
 
                     <Section label="Filtro colore">

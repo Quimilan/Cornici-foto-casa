@@ -43,6 +43,9 @@
 - [x] Iterazione 4 (100% backend+frontend, iteration_4): Rifiniture PDF tipografia.
   - Crocini di taglio (crop marks) a L nei 4 angoli, esterni al bleed, in margine bianco dedicato.
   - Profilo colore CMYK professionale FOGRA39 (Coated_Fogra39L, ICC in /app/backend/profiles) applicato via ImageCms; toggle attivabile nel dialogo export.
+- [x] Iterazione 5 (100% backend+frontend, iteration_5): Configuratore galleria + forma foto.
+  - Numero riquadri 1–50 (slider + input), disposizione "Griglia regolare" o "Layout misti" con anteprime, spessore bordo tra i riquadri fino a 3cm. Motore layout: gridCells/gridVariants/mixedVariants/computeVariants.
+  - Forma per singola foto (cella): Riempi, Quadrato 1:1, 4:3, 3:2, 3:4, 2:3 — la foto viene mostrata nel rapporto scelto, centrata nel riquadro, con sfondo attorno. Reso identico in preview ed export (render_cell inner box).
 
 ## Backlog / Prossimi passi (P1/P2)
 - Auto-disposizione intelligente / suggerimento layout in base al numero di foto caricate.

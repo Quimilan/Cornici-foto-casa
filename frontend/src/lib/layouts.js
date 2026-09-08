@@ -106,6 +106,95 @@ export function paperDims(paperId, orientation) {
   return orientation === "horizontal" ? { w_cm: hi, h_cm: lo } : { w_cm: lo, h_cm: hi };
 }
 
+// ---- Gallery layout engine (1..50 frames) ----
+export function decorateCells(rects) {
+  return rects.map((c) => ({
+    x: c.x, y: c.y, w: c.w, h: c.h,
+    photoId: null, zoom: 1, offsetX: 0, offsetY: 0, filter: "none", rotation: 0, aspect: "fill",
+  }));
+}
+
+// Regular grid of n cells with `cols` columns; last row fills its width evenly.
+export function gridCells(cols, n) {
+  cols = Math.max(1, cols);
+  const rows = Math.ceil(n / cols);
+  const rowH = 1 / rows;
+  const cells = [];
+  for (let r = 0; r < rows; r++) {
+    const inRow = Math.min(cols, n - r * cols);
+    const cw = 1 / inRow;
+    for (let c = 0; c < inRow; c++) {
+      cells.push({ x: c * cw, y: r * rowH, w: cw, h: rowH });
+    }
+  }
+  return cells;
+}
+
+function placeInRect(rects, X, Y, W, H) {
+  return rects.map((c) => ({ x: X + c.x * W, y: Y + c.y * H, w: c.w * W, h: c.h * H }));
+}
+
+function bestCols(n) {
+  return Math.max(1, Math.round(Math.sqrt(n)));
+}
+
+function heroTop(n) {
+  const hero = { x: 0, y: 0, w: 1, h: 0.45 };
+  const rest = placeInRect(gridCells(bestCols(n - 1), n - 1), 0, 0.45, 1, 0.55);
+  return [hero, ...rest];
+}
+
+function heroLeft(n) {
+  const hero = { x: 0, y: 0, w: 0.58, h: 1 };
+  const cols = n - 1 <= 3 ? 1 : n - 1 <= 8 ? 2 : 3;
+  const rest = placeInRect(gridCells(cols, n - 1), 0.58, 0, 0.42, 1);
+  return [hero, ...rest];
+}
+
+const CURATED_MIXED = {
+  3: [{ key: "m3-1-2", label: "1 grande + 2", cells: [{ x: 0, y: 0, w: 0.6, h: 1 }, { x: 0.6, y: 0, w: 0.4, h: 0.5 }, { x: 0.6, y: 0.5, w: 0.4, h: 0.5 }] }],
+  5: [{ key: "m5-1-4", label: "1 grande + 4", cells: [{ x: 0, y: 0, w: 1, h: 0.6 }, { x: 0, y: 0.6, w: 0.25, h: 0.4 }, { x: 0.25, y: 0.6, w: 0.25, h: 0.4 }, { x: 0.5, y: 0.6, w: 0.25, h: 0.4 }, { x: 0.75, y: 0.6, w: 0.25, h: 0.4 }] }],
+  7: [{ key: "m7-1-6", label: "1 grande + 6", cells: [{ x: 0, y: 0, w: 1, h: 0.5 }, ...placeInRect(gridCells(3, 6), 0, 0.5, 1, 0.5)] }],
+};
+
+// Grid arrangements for a given count
+export function gridVariants(n) {
+  n = Math.max(1, Math.min(50, n));
+  if (n === 1) return [{ key: "g-1", label: "1 riquadro", cells: [{ x: 0, y: 0, w: 1, h: 1 }] }];
+  const opts = new Set();
+  const b = bestCols(n);
+  opts.add(b); opts.add(Math.max(1, b - 1)); opts.add(b + 1);
+  let best = null, bestDiff = 1e9;
+  for (let c = 1; c <= n; c++) {
+    if (n % c === 0) { const diff = Math.abs(c - n / c); if (diff < bestDiff) { bestDiff = diff; best = c; } }
+  }
+  if (best) opts.add(best);
+  if (n <= 8) { opts.add(n); opts.add(1); }
+  const cols = [...opts].filter((c) => c >= 1 && c <= n).sort((a, b2) => a - b2).slice(0, 5);
+  const preferred = best || b;
+  cols.sort((a, b2) => (a === preferred ? -1 : b2 === preferred ? 1 : a - b2));
+  return cols.map((c) => {
+    const rows = Math.ceil(n / c);
+    return { key: `g-${n}-${c}`, label: `${c} × ${rows}`, cells: gridCells(c, n) };
+  });
+}
+
+// Mixed arrangements (varied cell sizes)
+export function mixedVariants(n) {
+  n = Math.max(1, Math.min(50, n));
+  const list = [];
+  (CURATED_MIXED[n] || []).forEach((m) => list.push(m));
+  if (n >= 3 && n <= 16) {
+    list.push({ key: `m-top-${n}`, label: "1 grande in alto", cells: heroTop(n) });
+    list.push({ key: `m-left-${n}`, label: "1 grande a sinistra", cells: heroLeft(n) });
+  }
+  return list.length ? list : gridVariants(n);
+}
+
+export function computeVariants(n, mode) {
+  return mode === "mixed" ? mixedVariants(n) : gridVariants(n);
+}
+
 export function newCells(layoutKey) {
   const layout = LAYOUTS.find((l) => l.key === layoutKey) || LAYOUTS[5];
   return layout.cells.map((c) => ({
