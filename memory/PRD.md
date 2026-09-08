@@ -40,6 +40,9 @@
   - Dialogo dedicato con scelta formato carta (A5/A4/A3/A2/30x40/50x70/70x100 o "Come il collage") + orientamento.
   - 300 DPI, colori CMYK (Pillow convert), margini al vivo (bleed) 3mm su tutti i lati con edge-extension.
   - Riepilogo live: pagina rifilata, dimensione con bleed, pixel finali, modalità colore.
+- [x] Iterazione 4 (100% backend+frontend, iteration_4): Rifiniture PDF tipografia.
+  - Crocini di taglio (crop marks) a L nei 4 angoli, esterni al bleed, in margine bianco dedicato.
+  - Profilo colore CMYK professionale FOGRA39 (Coated_Fogra39L, ICC in /app/backend/profiles) applicato via ImageCms; toggle attivabile nel dialogo export.
 
 ## Backlog / Prossimi passi (P1/P2)
 - Auto-disposizione intelligente / suggerimento layout in base al numero di foto caricate.

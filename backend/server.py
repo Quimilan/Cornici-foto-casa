@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field
-from PIL import Image, ImageOps, ImageEnhance, ImageDraw, ImageFont
+from PIL import Image, ImageOps, ImageEnhance, ImageDraw, ImageFont, ImageCms
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -84,6 +84,38 @@ FONT_FILES = {
     "dancing": str(FONT_DIR / "DancingScript.ttf"),
     "inter": str(FONT_DIR / "Inter.ttf"),
 }
+
+PROFILE_DIR = ROOT_DIR / "profiles"
+CMYK_PROFILE_PATH = PROFILE_DIR / "CoatedFOGRA39.icc"
+_cmyk_transform = None
+
+
+def get_cmyk_transform():
+    """Lazily build & cache the sRGB -> Coated FOGRA39 transform. Returns (transform, icc_bytes)."""
+    global _cmyk_transform
+    if _cmyk_transform is None:
+        try:
+            prof = ImageCms.getOpenProfile(str(CMYK_PROFILE_PATH))
+            srgb = ImageCms.createProfile("sRGB")
+            tf = ImageCms.buildTransform(srgb, prof, "RGB", "CMYK", renderingIntent=ImageCms.Intent.PERCEPTUAL)
+            _cmyk_transform = (tf, CMYK_PROFILE_PATH.read_bytes())
+            logger.info("CMYK FOGRA39 profile loaded")
+        except Exception as e:
+            logger.error(f"CMYK profile load failed: {e}")
+            _cmyk_transform = (None, None)
+    return _cmyk_transform
+
+
+def to_cmyk(img: Image.Image, use_icc: bool = True) -> Image.Image:
+    img = img.convert("RGB")
+    if use_icc:
+        tf, icc = get_cmyk_transform()
+        if tf is not None:
+            out = ImageCms.applyTransform(img, tf)
+            if icc:
+                out.info["icc_profile"] = icc
+            return out
+    return img.convert("CMYK")
 
 # ---------------------------------------------------------------------------
 # App
@@ -182,6 +214,8 @@ class ExportRequest(BaseModel):
     paper: Optional[FormatSpec] = None   # None => usa il formato del collage
     bleed_mm: float = 0.0
     cmyk: bool = False
+    icc: bool = True
+    crop_marks: bool = False
     page_bg: str = "#FFFFFF"
 
 
@@ -523,6 +557,43 @@ def add_bleed(img: Image.Image, b: int) -> Image.Image:
     return canvas
 
 
+def add_crop_marks(bled: Image.Image, bleed_px: int, trim_w: int, trim_h: int, dpi: int) -> Image.Image:
+    mark_len = max(8, round(4 / 25.4 * dpi))       # 4 mm marks
+    thick = max(2, round(dpi / 300 * 2))
+    margin = mark_len + thick + round(1 / 25.4 * dpi)
+    pw, ph = bled.size
+    W, H = pw + 2 * margin, ph + 2 * margin
+    canvas = Image.new("RGB", (W, H), (255, 255, 255))
+    canvas.paste(bled, (margin, margin))
+    d = ImageDraw.Draw(canvas)
+    col = (0, 0, 0)
+    # trim corners in canvas coordinates
+    x0, y0 = margin + bleed_px, margin + bleed_px
+    x1, y1 = x0 + trim_w, y0 + trim_h
+    ht = thick // 2
+
+    def vseg(x, ya, yb):
+        d.rectangle([x - ht, ya, x - ht + thick - 1, yb], fill=col)
+
+    def hseg(y, xa, xb):
+        d.rectangle([xa, y - ht, xb, y - ht + thick - 1], fill=col)
+
+    inner_gap = bleed_px  # marks sit just outside the bleed
+    # top-left
+    vseg(x0, y0 - inner_gap - mark_len, y0 - inner_gap)
+    hseg(y0, x0 - inner_gap - mark_len, x0 - inner_gap)
+    # top-right
+    vseg(x1, y0 - inner_gap - mark_len, y0 - inner_gap)
+    hseg(y0, x1 + inner_gap, x1 + inner_gap + mark_len)
+    # bottom-left
+    vseg(x0, y1 + inner_gap, y1 + inner_gap + mark_len)
+    hseg(y1, x0 - inner_gap - mark_len, x0 - inner_gap)
+    # bottom-right
+    vseg(x1, y1 + inner_gap, y1 + inner_gap + mark_len)
+    hseg(y1, x1 + inner_gap, x1 + inner_gap + mark_len)
+    return canvas
+
+
 @api_router.post("/export")
 async def export_collage(req: ExportRequest):
     try:
@@ -533,10 +604,14 @@ async def export_collage(req: ExportRequest):
             pw = cm_to_px(req.paper.w_cm, dpi)
             ph = cm_to_px(req.paper.h_cm, dpi)
             img = fit_on_page(img, pw, ph, hex_to_rgb(req.page_bg))
+        trim_w, trim_h = img.size
         # Professional bleed (edge extension)
-        if req.bleed_mm and req.bleed_mm > 0:
-            bleed_px = max(1, round(req.bleed_mm / 25.4 * dpi))
+        bleed_px = max(1, round(req.bleed_mm / 25.4 * dpi)) if (req.bleed_mm and req.bleed_mm > 0) else 0
+        if bleed_px:
             img = add_bleed(img, bleed_px)
+        # Crop / trim marks for the print shop
+        if req.crop_marks:
+            img = add_crop_marks(img, bleed_px, trim_w, trim_h, dpi)
     except Exception as e:
         logger.exception("export failed")
         raise HTTPException(status_code=500, detail=f"Errore rendering: {e}")
@@ -544,8 +619,15 @@ async def export_collage(req: ExportRequest):
     buf = io.BytesIO()
     fmt = req.fmt.lower()
     if fmt == "pdf":
-        out = img.convert("CMYK") if req.cmyk else img.convert("RGB")
-        out.save(buf, "PDF", resolution=float(dpi))
+        if req.cmyk:
+            out = to_cmyk(img, use_icc=req.icc)
+            icc = out.info.get("icc_profile")
+            if icc:
+                out.save(buf, "PDF", resolution=float(dpi), icc_profile=icc)
+            else:
+                out.save(buf, "PDF", resolution=float(dpi))
+        else:
+            img.convert("RGB").save(buf, "PDF", resolution=float(dpi))
         media, ext = "application/pdf", "pdf"
     elif fmt == "png":
         img.save(buf, "PNG", dpi=(dpi, dpi))

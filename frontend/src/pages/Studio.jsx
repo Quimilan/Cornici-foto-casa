@@ -226,13 +226,13 @@ export default function Studio() {
     }
   };
 
-  const onExportPdf = async ({ paper, bleed_mm, cmyk }) => {
+  const onExportPdf = async ({ paper, bleed_mm, cmyk, icc, crop_marks }) => {
     setExporting(true);
     try {
       const spec = { ...buildSpec(), dpi: 300 };
-      const blob = await exportCollage(spec, "pdf", projectName || "collage", { paper, bleed_mm, cmyk });
+      const blob = await exportCollage(spec, "pdf", projectName || "collage", { paper, bleed_mm, cmyk, icc, crop_marks });
       download(blob, `${(projectName || "collage").replace(/\s+/g, "_")}_stampa.pdf`);
-      toast.success(`PDF pronto stampa · 300 DPI${cmyk ? " · CMYK" : ""}${bleed_mm ? " · bleed 3mm" : ""}`);
+      toast.success(`PDF pronto stampa · 300 DPI${cmyk ? (icc ? " · CMYK FOGRA39" : " · CMYK") : ""}${bleed_mm ? " · bleed 3mm" : ""}${crop_marks ? " · crocini" : ""}`);
       setPdfExportOpen(false);
     } catch (e) {
       toast.error("Esportazione PDF non riuscita");

@@ -11,6 +11,8 @@ export default function ExportDialog({ open, onClose, format, onExportPdf, expor
   const [paperOrientation, setPaperOrientation] = useState("vertical");
   const [bleed, setBleed] = useState(true);
   const [cmyk, setCmyk] = useState(true);
+  const [icc, setIcc] = useState(true);
+  const [cropMarks, setCropMarks] = useState(true);
 
   const DPI = 300;
   const page = paperId === "auto" ? { w_cm: format.w_cm, h_cm: format.h_cm } : paperDims(paperId, paperOrientation);
@@ -24,6 +26,8 @@ export default function ExportDialog({ open, onClose, format, onExportPdf, expor
       paper: paperId === "auto" ? null : paperDims(paperId, paperOrientation),
       bleed_mm: bleed ? 3 : 0,
       cmyk,
+      icc: cmyk && icc,
+      crop_marks: cropMarks,
     });
   };
 
@@ -84,6 +88,22 @@ export default function ExportDialog({ open, onClose, format, onExportPdf, expor
               </div>
               <Switch data-testid="cmyk-toggle" checked={cmyk} onCheckedChange={setCmyk} />
             </div>
+            {cmyk && (
+              <div className="flex items-center justify-between pl-3 border-l-2 border-[#2e323d]">
+                <div>
+                  <p className="text-sm text-gray-200">Profilo FOGRA39</p>
+                  <p className="text-[10px] text-gray-500">Coated FOGRA39 · resa colore fedele</p>
+                </div>
+                <Switch data-testid="icc-toggle" checked={icc} onCheckedChange={setIcc} />
+              </div>
+            )}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-200">Crocini di taglio</p>
+                <p className="text-[10px] text-gray-500">Segni di rifilatura per la tipografia</p>
+              </div>
+              <Switch data-testid="crop-marks-toggle" checked={cropMarks} onCheckedChange={setCropMarks} />
+            </div>
           </div>
 
           <div className="rounded-xl bg-[#0d0e11] border border-[#2e323d] p-4 font-mono text-xs text-gray-400 space-y-1">
@@ -91,7 +111,8 @@ export default function ExportDialog({ open, onClose, format, onExportPdf, expor
             <div className="flex justify-between"><span>Pagina rifilata</span><span className="text-gray-200">{page.w_cm.toFixed(1)} × {page.h_cm.toFixed(1)} cm</span></div>
             <div className="flex justify-between"><span>Con bleed</span><span className="text-gray-200">{finalW.toFixed(1)} × {finalH.toFixed(1)} cm</span></div>
             <div className="flex justify-between"><span>Pixel finali</span><span className="text-gray-200">{px(finalW)} × {px(finalH)} px</span></div>
-            <div className="flex justify-between"><span>Colore</span><span className="text-gray-200">{cmyk ? "CMYK" : "RGB"}</span></div>
+            <div className="flex justify-between"><span>Colore</span><span className="text-gray-200">{cmyk ? (icc ? "CMYK · FOGRA39" : "CMYK") : "RGB"}</span></div>
+            <div className="flex justify-between"><span>Crocini di taglio</span><span className="text-gray-200">{cropMarks ? "Sì" : "No"}</span></div>
           </div>
 
           <Button data-testid="confirm-pdf-export-button" onClick={handleExport} disabled={exporting}

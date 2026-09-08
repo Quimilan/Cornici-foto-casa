@@ -1,0 +1,20 @@
+{
+  "summary": "Iteration 4: crop marks + FOGRA39 ICC validated end-to-end. Backend: 7/7 pytest pass in /app/backend/tests/test_crop_marks_and_icc.py (a) A4+bleed3mm+crop_marks at 300 DPI produced /DeviceCMYK PDF with exact 2672x3700 px (as expected: 2480+70+122 x 3508+70+122); (b) cmyk+icc PDF embeds ICC_PROFILE bytes (Pillow embeds inside JPEG APP2 marker; PDF-level colorspace is /DeviceCMYK) and differs from icc=false PDF; (c) cmyk without icc still yields /DeviceCMYK PDF; (d) cmyk=false yields /DeviceRGB PDF; (e) crop_marks with paper=null works, adding 2*margin around the collage's own bleed page; (f) crop_marks apply to png and jpg formats, producing images 2*margin+2*bleed larger than base. Backend log shows 'CMYK FOGRA39 profile loaded' (3 occurrences during test session, once per worker start). Frontend Playwright: export-pdf-dialog shows crop-marks-toggle (default Sì) and icc-toggle (default on, labelled 'Profilo FOGRA39'); toggling icc off changes summary from 'CMYK · FOGRA39' -> 'CMYK'; toggling cmyk off hides icc-toggle and switches summary to 'RGB'; toggling crop-marks flips 'Crocini di taglio' Sì/No; confirm-pdf-export-button POSTs /api/export with crop_marks=true, cmyk=true, icc=true, bleed_mm=3, fmt=pdf and triggers PDF download Nuovo_collage_stampa.pdf; success toast reads 'PDF pronto stampa · 300 DPI · CMYK FOGRA39 · bleed 3mm · crocini'. No console errors.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_crop_marks_and_icc.py",
+    "/app/test_reports/pytest/iter4_crop_icc.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Note: The FOGRA39 ICC profile is transported inside the JPEG's APP2 ICC_PROFILE marker (Pillow behaviour) and the PDF-level colorspace remains /DeviceCMYK. This is acceptable for most print shops - the RIP will pick up the embedded profile from the JPEG. If a PDF/X-1a-style /ICCBased ColorSpace is ever required, a dedicated PDF writer (reportlab/pikepdf) would be needed.",
+    "add_crop_marks pastes the bleed image onto a NEW white RGB canvas which is then converted to CMYK for the PDF branch; RGB->CMYK is applied only once at PDF save (good, no double conversion)."
+  ],
+  "updated_files": ["/app/backend/tests/test_crop_marks_and_icc.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "seed_data_creation": "Reused idempotent /api/import-samples for photos.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "New tests at /app/backend/tests/test_crop_marks_and_icc.py cover crop_marks dims math and FOGRA39 ICC embedding by inspecting raw PDF bytes for ICC_PROFILE marker + size delta vs icc=false. Frontend flow validated: default dialog opens with cmyk+icc+crop_marks ON; summary 'Colore' cell text is 'CMYK · FOGRA39' / 'CMYK' / 'RGB'; 'Crocini di taglio' cell is 'Sì'/'No'. Export downloads .pdf successfully in ~5-6s at 300 DPI 50x70cm with FOGRA39 + crop marks."
+}
